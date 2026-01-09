@@ -1,0 +1,21 @@
+---
+title: "Basic notebook: calculating fold change"
+output: html_document
+---
+
+```{r}
+# Step 1. Setup matrix
+mat <- matrix(sample(1:500, 50, replace = TRUE), nrow = 5)
+
+colnames(mat) <- c("cond1", "cond2", "cond3", "cond4", "cond5", "ctrl1", "ctrl2", "ctrl3", "ctrl4", "ctrl5")
+rownames(mat) <- c("gene1", "gene2", "gene3", "gene4", "gene5")
+
+mat
+
+# Step 2. Calculate fold change by gene
+cond_average <- rowMeans(mat[, 1:5])
+ctrl_average <- rowMeans(mat[, 6:10])
+
+fold_change <- cond_average / ctrl_average
+fold_change
+```
