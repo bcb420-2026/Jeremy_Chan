@@ -1,0 +1,291 @@
+
+---
+title: "Finding Expression Data with GEOmetadb"
+author: "Ruth Isserlin"
+date: "`r format(Sys.Date())`"
+site: bookdown::bookdown_site
+documentclass: book
+description: |
+  A hands-on tutorial that shows how to explore GEO metadata with GEOmetadb,
+  ask reproducible questions in SQL from R, and shortlist RNA-seq series.
+---
+
+# Welcome {-}
+
+This book is a tutorial-style rewrite of a lecture on *where to find expression data* and
+*how to mine GEO metadata with the `GEOmetadb` package*. It is designed for
+fourth-year bioinformatics students and focuses on reproducible code that you
+can run as-is.
+
+If you're new to **bookdown**, install it with:
+
+```r
+install.packages("bookdown")
+```
+
+Then build this book by running in R:
+
+```r
+bookdown::render_book(".")
+```
+
+<!--chapter:end:index.Rmd-->
+
+
+# Overview
+
+- Where can I find expression data?
+- Tools for mining the data — **GEOmetadb**
+- What GEO data types exist (GSE/GSM/GPL/GDS)?
+- How to shortlist a dataset of interest
+
+The main public repository we’ll use is the **Gene Expression Omnibus (GEO)**. Visit: <https://www.ncbi.nlm.nih.gov/geo/>.
+
+```{r, echo=FALSE}
+# (Optional) show an image if available in your project
+# knitr::include_graphics("images/geo_website_Dec2022.png")
+```
+
+<!--chapter:end:01-overview.Rmd-->
+
+
+# GEO Datatypes
+
+GEO organizes data into several related entities:
+
+- **GSE — Series**: links related samples and describes the study; may include archives of raw/processed files.
+- **GSM — Sample**: per‑sample description and data; each GSM belongs to exactly one platform (GPL).
+- **GPL — Platform**: array/sequencer description; many GSMs can map to a single GPL.
+- **GDS — Dataset**: curated collections of comparable samples on the same platform with uniform processing.
+
+See the GEO overview: <https://www.ncbi.nlm.nih.gov/geo/info/overview.html>
+
+```{r, echo=FALSE}
+# knitr::include_graphics("https://www.ncbi.nlm.nih.gov/geo/img/geo_overview.jpg")
+```
+
+<!--chapter:end:02-geo-datatypes.Rmd-->
+
+
+# Setting up `GEOmetadb`
+
+`GEOmetadb` provides a SQLite mirror of GEO metadata that you can query from R.
+It mirrors GEO as-is (no curation). Download the current SQLite file once and reuse it.
+
+## Install packages
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if (!requireNamespace("GEOmetadb", quietly = TRUE))
+  BiocManager::install("GEOmetadb")
+if (!requireNamespace("DBI", quietly = TRUE))
+  install.packages("DBI")
+if (!requireNamespace("RSQLite", quietly = TRUE))
+  install.packages("RSQLite")
+if (!requireNamespace("dplyr", quietly = TRUE))
+  install.packages("dplyr")
+if (!requireNamespace("ggplot2", quietly = TRUE))
+  install.packages("ggplot2")
+```
+
+## Get the SQLite database
+
+```{r}
+library(GEOmetadb)
+if (!file.exists('GEOmetadb.sqlite')) getSQLiteFile()
+file.info('GEOmetadb.sqlite')
+```
+
+## Connect to the database
+
+```{r}
+library(DBI)
+library(RSQLite)
+con <- dbConnect(SQLite(), 'GEOmetadb.sqlite')
+```
+
+## Explore tables and fields
+
+```{r}
+dbListTables(con)
+dbListFields(con, 'gse')
+```
+
+<!--chapter:end:03-setup-geometadb.Rmd-->
+
+
+# Exploring Platforms (GPL)
+
+How many platforms exist, and what technologies do they use?
+
+```{r}
+num_platforms <- dbGetQuery(con, 'select count(*) as n from gpl')
+num_platforms
+
+uniq_tech <- dbGetQuery(con, 'select distinct technology from gpl')
+NROW(uniq_tech)
+
+num_uniq_tech <- dbGetQuery(con, 'select technology, count(*) as Num_Platforms from gpl group by technology')
+# Quick plot
+library(ggplot2)
+plot_df <- subset(num_uniq_tech, !is.na(technology))
+ ggplot(plot_df, aes(x = technology, y = Num_Platforms)) +
+   geom_col() + coord_flip()
+```
+
+## Restrict to human
+
+```{r}
+num_uniq_tech_human <- dbGetQuery(con, "select technology, count(*) as Num_Platforms from gpl where organism = 'Homo sapiens' group by technology order by Num_Platforms desc")
+num_uniq_tech_contain_human <- dbGetQuery(con, "select technology, count(*) as Num_Platforms from gpl where organism like '%Homo sapiens%' group by technology order by Num_Platforms desc")
+
+library(dplyr)
+uniq_tech_all <- bind_rows(
+  transform(num_uniq_tech_human, type = 'human only'),
+  transform(num_uniq_tech_contain_human, type = 'contains human'),
+  transform(num_uniq_tech, type = 'All species')
+)
+
+ggplot(uniq_tech_all, aes(technology, Num_Platforms, fill = type)) +
+  geom_col(position = 'dodge') + coord_flip() +
+  theme(legend.position = 'bottom') +
+  ggtitle('Platforms that contain human vs human only')
+```
+
+<!--chapter:end:04-exploring-platforms.Rmd-->
+
+
+# Finding Datasets of Interest
+
+Goal: RNA-seq, human, recent (last ~3 years), and with sufficient samples.
+
+## RNA-seq series by platform technology
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse.title, gse.gse, gpl.title",
+  "FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "JOIN gpl ON gse_gpl.gpl = gpl.gpl",
+  "WHERE gpl.technology = 'high-throughput sequencing'"
+)
+rs <- dbGetQuery(con, sql)
+dim(rs)
+```
+
+## Add organism and recency filters
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse.title, gse.gse, gpl.title, gse.submission_date",
+  "FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "JOIN gpl ON gse_gpl.gpl = gpl.gpl",
+  "WHERE gse.submission_date > '2022-01-01' AND",
+  "gpl.organism LIKE '%Homo sapiens%' AND",
+  "gpl.technology LIKE '%high-throughput seq%'"
+)
+rs <- dbGetQuery(con, sql)
+dim(rs)
+```
+
+## Add a topic keyword (e.g., ovarian)
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse.title, gse.gse, gpl.title, gse.submission_date",
+  "FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "JOIN gpl ON gse_gpl.gpl = gpl.gpl",
+  "WHERE gse.submission_date > '2022-01-01' AND",
+  "gse.title LIKE '%ovarian%' AND",
+  "gpl.organism LIKE '%Homo sapiens%' AND",
+  "gpl.technology LIKE '%high-throughput seq%'"
+)
+rs <- dbGetQuery(con, sql)
+dim(rs)
+head(rs[, c('gse','title')])
+```
+
+## Heuristic: require a counts-like supplementary file
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse.title, gse.gse, gpl.title, gse.submission_date, gse.supplementary_file",
+  "FROM gse JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "JOIN gpl ON gse_gpl.gpl = gpl.gpl",
+  "WHERE gse.submission_date > '2022-01-01' AND",
+  "gse.title LIKE '%ovarian%' AND",
+  "gpl.organism LIKE '%Homo sapiens%' AND",
+  "gpl.technology LIKE '%high-throughput sequencing%'",
+  "ORDER BY gse.submission_date DESC"
+)
+rs <- dbGetQuery(con, sql)
+counts_files <- rs$supplementary_file[grep("count|cnt", rs$supplementary_file, ignore.case = TRUE)]
+series_of_interest <- rs$gse[grep("count|cnt", rs$supplementary_file, ignore.case = TRUE)]
+# Preview filenames
+shortened <- unlist(lapply(counts_files, function(x){
+  x <- unlist(strsplit(x, ";"))
+  x <- x[grep("count|cnt|txt|csv|xlsx", x, ignore.case = TRUE)]
+  tail(unlist(strsplit(x, "/")), n = 1)
+}))
+head(shortened, 10)
+```
+
+## Require a minimum number of samples per series
+
+```{r}
+num_series <- dbGetQuery(con, paste(
+  "select * from gsm where series_id in ('",
+  paste(series_of_interest, collapse = "','"), "')", sep = ""))
+
+gse.count <- as.data.frame(table(num_series$series_id))
+subset(gse.count, Freq > 6)
+```
+
+<!--chapter:end:05-finding-datasets.Rmd-->
+
+
+# Exercises: Inspect Specific GEO Series
+
+In this exercise, you'll retrieve metadata for the following GEO Series and answer:
+
+**GSE IDs:** "GSE201427","GSE166530","GSE162183","GSE186458"
+
+**Questions per GSE**
+
+  1. **What type of data is it?  Describe it.** (platform technology; e.g., high-throughput sequencing, array)
+  1. **What disease or model is it using?** (infer from series title/summary/platform organism)
+  1. **How many samples are there? What type of data is associated with the record?** 
+  1. **How many control and how many disease?** 
+  1.  **Can you find out any information about the GEO dataset - GSE264108. Why or Why not?
+  
+
+> Hint: Sample labels are not standardized. Use robust keyword detection (e.g., `control|normal|healthy|wild[- ]?type` vs. `tumou?r|cancer|patient|disease|mutant|treated`). Inspect a few GSM rows if the automatic inference is uncertain.
+
+```{r}
+sql <- paste(
+  "SELECT DISTINCT gse.title, gse.type, gse.gse, gpl.gpl, gpl.title, gpl.technology, gpl.organism, gsm.gsm, gsm.title", 
+  "FROM gse",
+  "JOIN gse_gpl ON gse_gpl.gse = gse.gse",
+  "JOIN gpl ON gse_gpl.gpl = gpl.gpl",
+  "JOIN gse_gsm ON gse_gsm.gse = gse.gse",
+  "JOIN gsm ON gse_gsm.gsm = gsm.gsm"
+)
+rs <- dbGetQuery(con, sql)
+
+gse <- rs[rs$gse == "GSE264108", ]
+```
+
+<!--chapter:end:06-exercises.Rmd-->
+
+
+# Next week / Next steps
+
+- Download one candidate series and its supplementary counts
+- Document everything (session info, package versions)
+
+```{r}
+sessionInfo()
+```
+
+<!--chapter:end:08-next-steps.Rmd-->
+
