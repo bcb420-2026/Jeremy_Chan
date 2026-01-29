@@ -1,6 +1,6 @@
 ---
 title: "Get to know me!"
-author: "Student's Name"
+author: "Jeremy Chan"
 date: "2026-01-27"
 output:
   html_document:
@@ -19,51 +19,72 @@ knitr::opts_chunk$set(echo = FALSE,
                       knitr.kable.max_rows = 6)
 
 # attach any relevant packages
-....
+library(rmarkdown)
+library(dplyr)
+library(ggplot2)
 
 # read the data files
 courses <- read.csv(file = "courses.csv")
 hobbies <- read.csv(file = "hobbies.csv")
 ```
 
-# This R Markdown is to get to know ...Student's Name...!
+# This R Markdown is to get to know Jeremy!
 
 ## Bio {#bachelors-degree}
-... fill in ...
 
+Hello, my name is Jeremy! I am an undergraduate student at the University of Toronto, and I am in my 4th year. I am specialising in [Bioinformatics & Computational Biology](https://bcb.csb.utoronto.ca/), along with minors in [Computer Science](https://web.cs.toronto.edu/) and [Linguistics](https://www.linguistics.utoronto.ca/). Currently, I'm undergoing my thesis project studying cancer cell lineages at the Princess Margaret Cancer Centre under the supervision of Dr. Federico Gaiti.
 
-## Bachelors Degree 
-### {#bachelors-degree-table}
-**Table 1. Record of all undergraduate courses** 
-``` {r courses_table, include=TRUE,echo=TRUE}
+## Bachelors Degree
 
-# show a table with all my courses 
-# ... fill in ...
+###  {#bachelors-degree-table}
 
+**Table 1. Record of all undergraduate courses**
+
+```{r courses_table, include=TRUE,echo=TRUE}
+paged_table(courses)
 ```
 
-### {#bachelors-degree-figure}
+###  {#bachelors-degree-figure}
 
-``` {r courses_figure, include=TRUE,echo=TRUE, fig.cap = "**Figure 1 Title** Text "}
+```{r courses_figure, include=TRUE,echo=TRUE, fig.cap = "**Figure 1: Summary of undergraduate courses.** Barplot of the number of courses taken through my undergraduate degree. Colours represent the category of each courseas part of the undergraduate course requirements."}
 ## organize the data for plotting
-# ... fill in ...
+courses_plot <- courses %>%
+  count(Course_Department, course_type) 
 
 # generate plot 
-# ... fill in ...
-  
+ggplot(courses_plot, aes(fill = course_type, x=Course_Department, y=n)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, by = 1)
+  ) +
+  labs(title = "Jeremy's undergraduate degree", x = "Course Department", y = "Number of courses") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
 ## Hobbies
-### {#my-hobbies}
-... fill in ...
 
+###  {#my-hobbies}
 
-## Custom section {#custom-section}
-... fill in ...
+I have a few hobbies that I like to do when I have some free time, but most of my time is spent relaxing!
 
-## Questions to answer 
+### {#hobbies-hours-per-week}
+### {#favorite-hobby}
+```{r hobby_figure, include=TRUE,echo=TRUE, fig.cap = "**Figure 2: Time spent on my hobbies.** Barplot of the hours that I spent weekly on each of my hobbies."}
+ggplot(hobbies, aes(x=hobby, y=hours_per_week)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Jeremy's weekly hobbies", x = "Hobby", y = "Hours spent per week")
+```
 
-1.[ What is your bachelors degree?](#bachelors-degree)
+## Travelling! {#custom-section}
+
+One of the things I love to do is travel! In 2025, I visited 12 different countries. Here is a collage of pictures of some of the places I went:
+
+![ ](travel.png)
+
+## Questions to answer
+
+1.[What is your bachelors degree?](#bachelors-degree)
 
 2.[Which courses have you taken and in which departments?](#bachelors-degree-figure)
 
@@ -76,4 +97,16 @@ hobbies <- read.csv(file = "hobbies.csv")
 6.[Add a custom section of your choosing!](#custom-section)
 
 ## Citations
-... fill in ...
+
+Wickham H, François R, Henry L, Müller K, Vaughan D (2023). _dplyr: A
+  Grammar of Data Manipulation_. doi:10.32614/CRAN.package.dplyr
+  <https://doi.org/10.32614/CRAN.package.dplyr>, R package version 1.1.4,
+  <https://CRAN.R-project.org/package=dplyr>.
+  
+Allaire J, Xie Y, Dervieux C, McPherson J, Luraschi J, Ushey K, Atkins
+  A, Wickham H, Cheng J, Chang W, Iannone R (2025). _rmarkdown: Dynamic
+  Documents for R_. R package version 2.30,
+  <https://github.com/rstudio/rmarkdown>.
+  
+H. Wickham. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag
+  New York, 2016.

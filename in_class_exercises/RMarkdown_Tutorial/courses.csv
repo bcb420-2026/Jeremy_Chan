@@ -1,6 +1,43 @@
-﻿Course_Department,Course_Code,Year,course_type
-ANTH,227,1,Elective
-BIOL,121,1,BSc Requirement 
-CHEM,121,1,BSc Requirement 
-ENGL,110,1,BSc Requirement 
-
+Course_Department,Course_Code,Year,course_type
+CSC,108,1,Bioinformatics requirement
+BIO,120,1,Bioinformatics requirement
+CHM,135,1,Bioinformatics requirement
+MAT,135,1,Bioinformatics requirement
+CDN,199,1,Elective
+CSC,148,1,Bioinformatics requirement
+BIO,130,1,Bioinformatics requirement
+CHM,136,1,Bioinformatics requirement
+MAT,136,1,Bioinformatics requirement
+UNI,198,1,Elective
+LIN,101,2,Linguistics requirement
+BCH,210,2,Bioinformatics requirement
+BIO,230,2,Bioinformatics requirement
+CSC,207,2,Bioinformatics requirement
+GGR,251,2,Elective
+HMB,265,2,Bioinformatics requirement
+BCH,311,2,Bioinformatics requirement
+CSC,165,2,Bioinformatics requirement
+CSC,209,2,Bioinformatics requirement
+LIN,102,2,Linguistics requirement
+PHY,207,2,Elective
+CSC,236,3,Bioinformatics requirement
+LIN,201,3,Linguistics requirement
+STA,237,3,Bioinformatics requirement
+BCB,330,3,Bioinformatics requirement
+CSC,263,3,Bioinformatics requirement
+LIN,232,3,Linguistics requirement
+MAT,223,3,Elective
+MGY,277,3,Elective
+CSB,352,3,Elective
+CSC,373,3,Bioinformatics requirement
+IMM,250,3,Elective
+PHL,245,3,Linguistics requirement
+CSB,397,4,Elective
+BCB,410,4,Bioinformatics requirement
+BCB,430,4,Bioinformatics requirement
+LIN,305,4,Linguistics requirement
+MGY,441,4,Bioinformatics requirement
+BCB,420,4,Bioinformatics requirement
+CSC,300,4,Computer Science requirement
+JLP,315,4,Linguistics requirement
+LIN,241,4,Linguistics requirement
