@@ -1,0 +1,111 @@
+---
+title: "ID Mapping - Worked Tutorial"
+output: html_document
+---
+
+# Chapter 4: biomaRt step-by-step
+```{r}
+library(biomaRt) # Load the biomaRt package in
+library(dplyr)
+
+listMarts() # Available biomaRts
+
+ensembl <- useMart("ensembl") # Not pinning a specific version
+
+datasets <- listDatasets(ensembl) # Datasets part of the ensembl biomaRt
+
+human <- datasets[grep(datasets$dataset, pattern = "hsapiens"), ]
+human # List all datasets where the sample was collected from humans
+
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl) # Use the dataset name that was listed in the previous dataset
+
+all_filters <- listFilters(ensembl) # Filters are input ID type
+
+all_filters[grep(all_filters$name, pattern = "ensembl_gene"), ] # Find the filters that are related to ensembl gene IDs
+
+all_attr <- listAttributes(ensembl) # Attributes are the output columns that we want to get
+
+searchAttributes(ensembl, "hgnc") # Find the available outputs that are related to HGNC
+
+strip_ensembl_version <- function(x) sub("\\..*$", "", x)
+ids <- c("ENSG00000141510.17", "ENSG00000157764.2")
+ids_clean <- strip_ensembl_version(ids)
+ids_clean # Clean the IDs (remove version suffixes) so they can be queried
+
+cache_file <- "id_conversion.rds"
+
+if(file.exists(cache_file)) {
+  map <- getBM(
+    attributes = c("ensembl_gene_id", "hgnc_symbol"),
+    filters = "ensembl_gene_id",
+    values = ids_clean,
+    mart = ensembl
+  )
+  saveRDS(map, cache_file)
+} # Cache file
+
+df <- tibble(ensembl_gene_id = ids_clean, values = c(1, 2))
+df_annot <- left_join(df, map, by = "ensembl_gene_id")
+df_annot # Merge all data together! Now we have ensembl_gene_id and the hgnc_symbol.
+```
+
+# Chapter 6.1 (Exercise 1)
+```{r}
+df <- readr::read_table("data/GSE119732/GSE119732_count_table_RNA_seq.txt.gz")
+
+filtered_df <- head(df, 20) %>%
+  dplyr::select(gene_id) # Extract the first 20 IDs
+
+version_counts <- sum(grepl("\\.", filtered_df$gene_id))
+version_counts # Number of IDs that have a version code
+
+filtered_df <- filtered_df %>%
+  mutate(stripped = sub("\\..*$", "", gene_id)) # Create column with stripped IDs
+
+ids <- filtered_df$stripped[1:20] # Put stripped IDs into a vector
+
+# Load in ensembl again (from above)
+ensembl <- useMart("ensembl")
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+
+# Map to HGNC symbols
+map <- getBM(
+  attributes = c("ensembl_gene_id", "hgnc_symbol"),
+  filters = "ensembl_gene_id",
+  values = ids,
+  mart = ensembl
+)
+```
+
+# Chapter 6.2 (Exercise 2)
+```{r}
+# Get files from GEO
+source("./fetch_geo_supp.R")
+fetch_geo_supp(gse = "GSE122380")
+
+# Repeating code from above
+df <- readr::read_table("data/GSE122380/GSE122380_raw_counts.txt.gz")
+
+filtered_df <- head(df, 20) %>%
+  dplyr::select(Gene_id) # Extract the first 20 IDs
+
+version_counts <- sum(grepl("\\.", filtered_df$Gene_id))
+version_counts # Number of IDs that have a version code
+
+filtered_df <- filtered_df %>%
+  mutate(stripped = sub("\\..*$", "", Gene_id)) # Create column with stripped IDs
+
+ids <- filtered_df$stripped[1:20] # Put stripped IDs into a vector
+
+# Load in ensembl again (from above)
+ensembl <- useMart("ensembl")
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+
+# Map to HGNC symbols
+map <- getBM(
+  attributes = c("ensembl_gene_id", "hgnc_symbol"),
+  filters = "ensembl_gene_id",
+  values = ids,
+  mart = ensembl
+)
+```
