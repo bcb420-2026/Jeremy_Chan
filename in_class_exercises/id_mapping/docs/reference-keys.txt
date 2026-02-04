@@ -20,3 +20,6 @@ exercises
 exercise-1-httpswww.ncbi.nlm.nih.govgeoqueryacc.cgiaccgse119732
 exercise-2-httpswww.ncbi.nlm.nih.govgeoqueryacc.cgiaccgse122380
 exercise-3--
+chapter-4-biomart-step-by-step
+chapter-6.1-exercise-1
+chapter-6.2-exercise-2

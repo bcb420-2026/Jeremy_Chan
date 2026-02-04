@@ -13,3 +13,4 @@ rmd_files:
   - "04-biomart-step-by-step.Rmd"
   - "05-worked-examples.Rmd"
   - "06-exercises.Rmd"
+  - "id_mapping_worked.Rmd"

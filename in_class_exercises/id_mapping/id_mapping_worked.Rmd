@@ -75,6 +75,7 @@ map <- getBM(
   values = ids,
   mart = ensembl
 )
+map
 ```
 
 # Chapter 6.2 (Exercise 2)
@@ -108,4 +109,5 @@ map <- getBM(
   values = ids,
   mart = ensembl
 )
+map
 ```
