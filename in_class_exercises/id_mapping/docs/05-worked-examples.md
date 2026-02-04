@@ -13,13 +13,6 @@ This chapter shows **what the data look like**, **what the IDs look like**, and 
 
 ``` r
 library(knitr)
-```
-
-```
-## Warning: package 'knitr' was built under R version 4.4.3
-```
-
-``` r
 library(dplyr)
 ```
 
@@ -42,13 +35,7 @@ library(dplyr)
 
 ``` r
 library(tibble)
-```
 
-```
-## Warning: package 'tibble' was built under R version 4.4.3
-```
-
-``` r
 kable_head <- function(x, n = 5, caption = NULL) {
   knitr::kable(utils::head(x, n), caption = caption)
 }
@@ -119,13 +106,7 @@ Raw table preview
 
 ``` r
 library(readr)
-```
 
-```
-## Warning: package 'readr' was built under R version 4.4.3
-```
-
-``` r
 safe_read <- function(file) {
   # First attempt: read as TSV
   df <- tryCatch(
@@ -347,13 +328,6 @@ Output the distribution of biotypes for the subset of ensembl ids that have no H
 
 ``` r
 library(ggplot2)
-```
-
-```
-## Warning: package 'ggplot2' was built under R version 4.4.3
-```
-
-``` r
 x <- ensg_details$gene_biotype
 x[is.na(x)] <- "Unknown"
 
@@ -387,7 +361,7 @@ ggplot(df_counts, aes(x = biotype, y = n, fill = biotype)) +
   )
 ```
 
-<img src="05-worked-examples_files/figure-html/unnamed-chunk-5-1.png" alt="" width="672" />
+<img src="05-worked-examples_files/figure-html/unnamed-chunk-5-1.png" width="672" />
 
 Would the mapping of these identifiers have been different if we used a different version of Ensembl?
 

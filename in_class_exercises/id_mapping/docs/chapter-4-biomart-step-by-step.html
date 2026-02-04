@@ -4,18 +4,18 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial</title>
-  <meta name="description" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <title>Chapter 7 Chapter 4: biomaRt step-by-step | ID Mapping - Worked Tutorial</title>
+  <meta name="description" content="Chapter 7 Chapter 4: biomaRt step-by-step | ID Mapping - Worked Tutorial" />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <meta property="og:title" content="Chapter 7 Chapter 4: biomaRt step-by-step | ID Mapping - Worked Tutorial" />
   <meta property="og:type" content="book" />
   
   
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <meta name="twitter:title" content="Chapter 7 Chapter 4: biomaRt step-by-step | ID Mapping - Worked Tutorial" />
   
   
   
@@ -29,8 +29,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-<link rel="prev" href="what-is-identifier-mapping.html"/>
-<link rel="next" href="why-identifiers-are-messy.html"/>
+<link rel="prev" href="exercises.html"/>
+<link rel="next" href="chapter-6.1-exercise-1.html"/>
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -189,62 +189,86 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="getting-data-from-geo" class="section level1 hasAnchor" number="2">
-<h1><span class="header-section-number">Chapter 2</span> Getting data from GEO<a href="getting-data-from-geo.html#getting-data-from-geo" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<p>We download GEO supplementary files to obtain realistic identifiers.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="getting-data-from-geo.html#cb1-1" tabindex="-1"></a><span class="fu">library</span>(GEOquery)</span></code></pre></div>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Loading required package: BiocGenerics</code></pre>
-<pre><code>## Loading required package: generics</code></pre>
+<div id="chapter-4-biomart-step-by-step" class="section level1 hasAnchor" number="7">
+<h1><span class="header-section-number">Chapter 7</span> Chapter 4: biomaRt step-by-step<a href="chapter-4-biomart-step-by-step.html#chapter-4-biomart-step-by-step" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div class="sourceCode" id="cb75"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb75-1"><a href="chapter-4-biomart-step-by-step.html#cb75-1" tabindex="-1"></a><span class="fu">library</span>(biomaRt) <span class="co"># Load the biomaRt package in</span></span>
+<span id="cb75-2"><a href="chapter-4-biomart-step-by-step.html#cb75-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div>
 <pre><code>## 
-## Attaching package: &#39;generics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:biomaRt&#39;:
 ## 
-##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
-##     setequal, union</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BiocGenerics&#39;</code></pre>
+##     select</code></pre>
 <pre><code>## The following objects are masked from &#39;package:stats&#39;:
 ## 
-##     IQR, mad, sd, var, xtabs</code></pre>
+##     filter, lag</code></pre>
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
-##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
-##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
-##     unsplit, which.max, which.min</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
-##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
-<pre><code>## Setting options(&#39;download.file.method.GEOquery&#39;=&#39;auto&#39;)</code></pre>
-<pre><code>## Setting options(&#39;GEOquery.inmemory.gpl&#39;=FALSE)</code></pre>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="getting-data-from-geo.html#cb13-1" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;./fetch_geo_supp.R&quot;</span>)</span>
-<span id="cb13-2"><a href="getting-data-from-geo.html#cb13-2" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="getting-data-from-geo.html#cb13-3" tabindex="-1"></a><span class="fu">fetch_geo_supp</span>(<span class="at">gse =</span> <span class="st">&quot;GSE233947&quot;</span>)</span></code></pre></div>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_FeatureCounts_V31genes_RawCounts_ENSG.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_3CTG_20CTG_junctions.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_NT_20CTG_junctions.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_NT_3CTG_junctions.tsv.gz</code></pre>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="getting-data-from-geo.html#cb18-1" tabindex="-1"></a><span class="fu">fetch_geo_supp</span>(<span class="at">gse =</span> <span class="st">&quot;GSE119732&quot;</span>)</span></code></pre></div>
-<pre><code>## Using locally cached version of supplementary file(s) GSE119732 found here:
-## data/GSE119732/GSE119732_count_table_RNA_seq.txt.gz</code></pre>
-
+##     intersect, setdiff, setequal, union</code></pre>
+<div class="sourceCode" id="cb80"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb80-1"><a href="chapter-4-biomart-step-by-step.html#cb80-1" tabindex="-1"></a><span class="fu">listMarts</span>() <span class="co"># Available biomaRts</span></span></code></pre></div>
+<pre><code>##                biomart                version
+## 1 ENSEMBL_MART_ENSEMBL      Ensembl Genes 115
+## 2   ENSEMBL_MART_MOUSE      Mouse strains 115
+## 3     ENSEMBL_MART_SNP  Ensembl Variation 115
+## 4 ENSEMBL_MART_FUNCGEN Ensembl Regulation 115</code></pre>
+<div class="sourceCode" id="cb82"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb82-1"><a href="chapter-4-biomart-step-by-step.html#cb82-1" tabindex="-1"></a>ensembl <span class="ot">&lt;-</span> <span class="fu">useMart</span>(<span class="st">&quot;ensembl&quot;</span>) <span class="co"># Not pinning a specific version</span></span>
+<span id="cb82-2"><a href="chapter-4-biomart-step-by-step.html#cb82-2" tabindex="-1"></a></span>
+<span id="cb82-3"><a href="chapter-4-biomart-step-by-step.html#cb82-3" tabindex="-1"></a>datasets <span class="ot">&lt;-</span> <span class="fu">listDatasets</span>(ensembl) <span class="co"># Datasets part of the ensembl biomaRt</span></span>
+<span id="cb82-4"><a href="chapter-4-biomart-step-by-step.html#cb82-4" tabindex="-1"></a></span>
+<span id="cb82-5"><a href="chapter-4-biomart-step-by-step.html#cb82-5" tabindex="-1"></a>human <span class="ot">&lt;-</span> datasets[<span class="fu">grep</span>(datasets<span class="sc">$</span>dataset, <span class="at">pattern =</span> <span class="st">&quot;hsapiens&quot;</span>), ]</span>
+<span id="cb82-6"><a href="chapter-4-biomart-step-by-step.html#cb82-6" tabindex="-1"></a>human <span class="co"># List all datasets where the sample was collected from humans</span></span></code></pre></div>
+<pre><code>##                  dataset              description    version
+## 80 hsapiens_gene_ensembl Human genes (GRCh38.p14) GRCh38.p14</code></pre>
+<div class="sourceCode" id="cb84"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb84-1"><a href="chapter-4-biomart-step-by-step.html#cb84-1" tabindex="-1"></a>ensembl <span class="ot">&lt;-</span> <span class="fu">useDataset</span>(<span class="st">&quot;hsapiens_gene_ensembl&quot;</span>, <span class="at">mart =</span> ensembl) <span class="co"># Use the dataset name that was listed in the previous dataset</span></span>
+<span id="cb84-2"><a href="chapter-4-biomart-step-by-step.html#cb84-2" tabindex="-1"></a></span>
+<span id="cb84-3"><a href="chapter-4-biomart-step-by-step.html#cb84-3" tabindex="-1"></a>all_filters <span class="ot">&lt;-</span> <span class="fu">listFilters</span>(ensembl) <span class="co"># Filters are input ID type</span></span>
+<span id="cb84-4"><a href="chapter-4-biomart-step-by-step.html#cb84-4" tabindex="-1"></a></span>
+<span id="cb84-5"><a href="chapter-4-biomart-step-by-step.html#cb84-5" tabindex="-1"></a>all_filters[<span class="fu">grep</span>(all_filters<span class="sc">$</span>name, <span class="at">pattern =</span> <span class="st">&quot;ensembl_gene&quot;</span>), ] <span class="co"># Find the filters that are related to ensembl gene IDs</span></span></code></pre></div>
+<pre><code>##                       name
+## 54         ensembl_gene_id
+## 55 ensembl_gene_id_version
+##                                                 description
+## 54                 Gene stable ID(s) [e.g. ENSG00000000003]
+## 55 Gene stable ID(s) with version [e.g. ENSG00000000003.17]</code></pre>
+<div class="sourceCode" id="cb86"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb86-1"><a href="chapter-4-biomart-step-by-step.html#cb86-1" tabindex="-1"></a>all_attr <span class="ot">&lt;-</span> <span class="fu">listAttributes</span>(ensembl) <span class="co"># Attributes are the output columns that we want to get</span></span>
+<span id="cb86-2"><a href="chapter-4-biomart-step-by-step.html#cb86-2" tabindex="-1"></a></span>
+<span id="cb86-3"><a href="chapter-4-biomart-step-by-step.html#cb86-3" tabindex="-1"></a><span class="fu">searchAttributes</span>(ensembl, <span class="st">&quot;hgnc&quot;</span>) <span class="co"># Find the available outputs that are related to HGNC</span></span></code></pre></div>
+<pre><code>##               name        description         page
+## 63     hgnc_symbol        HGNC symbol feature_page
+## 64         hgnc_id            HGNC ID feature_page
+## 95 hgnc_trans_name Transcript name ID feature_page</code></pre>
+<div class="sourceCode" id="cb88"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb88-1"><a href="chapter-4-biomart-step-by-step.html#cb88-1" tabindex="-1"></a>strip_ensembl_version <span class="ot">&lt;-</span> <span class="cf">function</span>(x) <span class="fu">sub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">..*$&quot;</span>, <span class="st">&quot;&quot;</span>, x)</span>
+<span id="cb88-2"><a href="chapter-4-biomart-step-by-step.html#cb88-2" tabindex="-1"></a>ids <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ENSG00000141510.17&quot;</span>, <span class="st">&quot;ENSG00000157764.2&quot;</span>)</span>
+<span id="cb88-3"><a href="chapter-4-biomart-step-by-step.html#cb88-3" tabindex="-1"></a>ids_clean <span class="ot">&lt;-</span> <span class="fu">strip_ensembl_version</span>(ids)</span>
+<span id="cb88-4"><a href="chapter-4-biomart-step-by-step.html#cb88-4" tabindex="-1"></a>ids_clean <span class="co"># Clean the IDs (remove version suffixes) so they can be queried</span></span></code></pre></div>
+<pre><code>## [1] &quot;ENSG00000141510&quot; &quot;ENSG00000157764&quot;</code></pre>
+<div class="sourceCode" id="cb90"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb90-1"><a href="chapter-4-biomart-step-by-step.html#cb90-1" tabindex="-1"></a>cache_file <span class="ot">&lt;-</span> <span class="st">&quot;id_conversion.rds&quot;</span></span>
+<span id="cb90-2"><a href="chapter-4-biomart-step-by-step.html#cb90-2" tabindex="-1"></a></span>
+<span id="cb90-3"><a href="chapter-4-biomart-step-by-step.html#cb90-3" tabindex="-1"></a><span class="cf">if</span>(<span class="fu">file.exists</span>(cache_file)) {</span>
+<span id="cb90-4"><a href="chapter-4-biomart-step-by-step.html#cb90-4" tabindex="-1"></a>  map <span class="ot">&lt;-</span> <span class="fu">getBM</span>(</span>
+<span id="cb90-5"><a href="chapter-4-biomart-step-by-step.html#cb90-5" tabindex="-1"></a>    <span class="at">attributes =</span> <span class="fu">c</span>(<span class="st">&quot;ensembl_gene_id&quot;</span>, <span class="st">&quot;hgnc_symbol&quot;</span>),</span>
+<span id="cb90-6"><a href="chapter-4-biomart-step-by-step.html#cb90-6" tabindex="-1"></a>    <span class="at">filters =</span> <span class="st">&quot;ensembl_gene_id&quot;</span>,</span>
+<span id="cb90-7"><a href="chapter-4-biomart-step-by-step.html#cb90-7" tabindex="-1"></a>    <span class="at">values =</span> ids_clean,</span>
+<span id="cb90-8"><a href="chapter-4-biomart-step-by-step.html#cb90-8" tabindex="-1"></a>    <span class="at">mart =</span> ensembl</span>
+<span id="cb90-9"><a href="chapter-4-biomart-step-by-step.html#cb90-9" tabindex="-1"></a>  )</span>
+<span id="cb90-10"><a href="chapter-4-biomart-step-by-step.html#cb90-10" tabindex="-1"></a>  <span class="fu">saveRDS</span>(map, cache_file)</span>
+<span id="cb90-11"><a href="chapter-4-biomart-step-by-step.html#cb90-11" tabindex="-1"></a>} <span class="co"># Cache file</span></span>
+<span id="cb90-12"><a href="chapter-4-biomart-step-by-step.html#cb90-12" tabindex="-1"></a></span>
+<span id="cb90-13"><a href="chapter-4-biomart-step-by-step.html#cb90-13" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">ensembl_gene_id =</span> ids_clean, <span class="at">values =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb90-14"><a href="chapter-4-biomart-step-by-step.html#cb90-14" tabindex="-1"></a>df_annot <span class="ot">&lt;-</span> <span class="fu">left_join</span>(df, map, <span class="at">by =</span> <span class="st">&quot;ensembl_gene_id&quot;</span>)</span>
+<span id="cb90-15"><a href="chapter-4-biomart-step-by-step.html#cb90-15" tabindex="-1"></a>df_annot <span class="co"># Merge all data together! Now we have ensembl_gene_id and the hgnc_symbol.</span></span></code></pre></div>
+<pre><code>## # A tibble: 2 × 3
+##   ensembl_gene_id values hgnc_symbol
+##   &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt;      
+## 1 ENSG00000141510      1 TP53       
+## 2 ENSG00000157764      2 BRAF</code></pre>
 </div>
             </section>
 
           </div>
         </div>
       </div>
-<a href="what-is-identifier-mapping.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="why-identifiers-are-messy.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="exercises.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="chapter-6.1-exercise-1.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

@@ -4,18 +4,18 @@
 
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial</title>
-  <meta name="description" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <title>Chapter 9 Chapter 6.2 (Exercise 2) | ID Mapping - Worked Tutorial</title>
+  <meta name="description" content="Chapter 9 Chapter 6.2 (Exercise 2) | ID Mapping - Worked Tutorial" />
   <meta name="generator" content="bookdown 0.46 and GitBook 2.6.7" />
 
-  <meta property="og:title" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <meta property="og:title" content="Chapter 9 Chapter 6.2 (Exercise 2) | ID Mapping - Worked Tutorial" />
   <meta property="og:type" content="book" />
   
   
   
 
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Chapter 2 Getting data from GEO | ID Mapping - Worked Tutorial" />
+  <meta name="twitter:title" content="Chapter 9 Chapter 6.2 (Exercise 2) | ID Mapping - Worked Tutorial" />
   
   
   
@@ -29,8 +29,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   
   
-<link rel="prev" href="what-is-identifier-mapping.html"/>
-<link rel="next" href="why-identifiers-are-messy.html"/>
+<link rel="prev" href="chapter-6.1-exercise-1.html"/>
+
 <script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
@@ -189,53 +189,70 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           <div class="page-inner">
 
             <section class="normal" id="section-">
-<div id="getting-data-from-geo" class="section level1 hasAnchor" number="2">
-<h1><span class="header-section-number">Chapter 2</span> Getting data from GEO<a href="getting-data-from-geo.html#getting-data-from-geo" class="anchor-section" aria-label="Anchor link to header"></a></h1>
-<p>We download GEO supplementary files to obtain realistic identifiers.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="getting-data-from-geo.html#cb1-1" tabindex="-1"></a><span class="fu">library</span>(GEOquery)</span></code></pre></div>
-<pre><code>## Loading required package: Biobase</code></pre>
-<pre><code>## Loading required package: BiocGenerics</code></pre>
-<pre><code>## Loading required package: generics</code></pre>
-<pre><code>## 
-## Attaching package: &#39;generics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
-##     setequal, union</code></pre>
-<pre><code>## 
-## Attaching package: &#39;BiocGenerics&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     IQR, mad, sd, var, xtabs</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
-##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
-##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
-##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
-##     unsplit, which.max, which.min</code></pre>
-<pre><code>## Welcome to Bioconductor
-## 
-##     Vignettes contain introductory material; view with
-##     &#39;browseVignettes()&#39;. To cite Bioconductor, see
-##     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
+<div id="chapter-6.2-exercise-2" class="section level1 hasAnchor" number="9">
+<h1><span class="header-section-number">Chapter 9</span> Chapter 6.2 (Exercise 2)<a href="chapter-6.2-exercise-2.html#chapter-6.2-exercise-2" class="anchor-section" aria-label="Anchor link to header"></a></h1>
+<div class="sourceCode" id="cb98"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb98-1"><a href="chapter-6.2-exercise-2.html#cb98-1" tabindex="-1"></a><span class="co"># Get files from GEO</span></span>
+<span id="cb98-2"><a href="chapter-6.2-exercise-2.html#cb98-2" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;./fetch_geo_supp.R&quot;</span>)</span>
+<span id="cb98-3"><a href="chapter-6.2-exercise-2.html#cb98-3" tabindex="-1"></a><span class="fu">fetch_geo_supp</span>(<span class="at">gse =</span> <span class="st">&quot;GSE122380&quot;</span>)</span></code></pre></div>
 <pre><code>## Setting options(&#39;download.file.method.GEOquery&#39;=&#39;auto&#39;)</code></pre>
 <pre><code>## Setting options(&#39;GEOquery.inmemory.gpl&#39;=FALSE)</code></pre>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="getting-data-from-geo.html#cb13-1" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;./fetch_geo_supp.R&quot;</span>)</span>
-<span id="cb13-2"><a href="getting-data-from-geo.html#cb13-2" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="getting-data-from-geo.html#cb13-3" tabindex="-1"></a><span class="fu">fetch_geo_supp</span>(<span class="at">gse =</span> <span class="st">&quot;GSE233947&quot;</span>)</span></code></pre></div>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_FeatureCounts_V31genes_RawCounts_ENSG.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_3CTG_20CTG_junctions.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_NT_20CTG_junctions.tsv.gz</code></pre>
-<pre><code>## Using locally cached version of supplementary file(s) GSE233947 found here:
-## data/GSE233947/GSE233947_modulize_NT_3CTG_junctions.tsv.gz</code></pre>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="getting-data-from-geo.html#cb18-1" tabindex="-1"></a><span class="fu">fetch_geo_supp</span>(<span class="at">gse =</span> <span class="st">&quot;GSE119732&quot;</span>)</span></code></pre></div>
-<pre><code>## Using locally cached version of supplementary file(s) GSE119732 found here:
-## data/GSE119732/GSE119732_count_table_RNA_seq.txt.gz</code></pre>
+<pre><code>## Using locally cached version of supplementary file(s) GSE122380 found here:
+## data/GSE122380/GSE122380_Supplementary_Data_Table_S1.xlsx</code></pre>
+<pre><code>## Using locally cached version of supplementary file(s) GSE122380 found here:
+## data/GSE122380/GSE122380_raw_counts.txt.gz</code></pre>
+<div class="sourceCode" id="cb103"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb103-1"><a href="chapter-6.2-exercise-2.html#cb103-1" tabindex="-1"></a><span class="co"># Repeating code from above</span></span>
+<span id="cb103-2"><a href="chapter-6.2-exercise-2.html#cb103-2" tabindex="-1"></a>df <span class="ot">&lt;-</span> readr<span class="sc">::</span><span class="fu">read_table</span>(<span class="st">&quot;data/GSE122380/GSE122380_raw_counts.txt.gz&quot;</span>)</span></code></pre></div>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   .default = col_double(),
+##   Gene_id = col_character()
+## )
+## ℹ Use `spec()` for the full column specifications.</code></pre>
+<div class="sourceCode" id="cb105"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb105-1"><a href="chapter-6.2-exercise-2.html#cb105-1" tabindex="-1"></a>filtered_df <span class="ot">&lt;-</span> <span class="fu">head</span>(df, <span class="dv">20</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb105-2"><a href="chapter-6.2-exercise-2.html#cb105-2" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Gene_id) <span class="co"># Extract the first 20 IDs</span></span>
+<span id="cb105-3"><a href="chapter-6.2-exercise-2.html#cb105-3" tabindex="-1"></a></span>
+<span id="cb105-4"><a href="chapter-6.2-exercise-2.html#cb105-4" tabindex="-1"></a>version_counts <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">grepl</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">.&quot;</span>, filtered_df<span class="sc">$</span>Gene_id))</span>
+<span id="cb105-5"><a href="chapter-6.2-exercise-2.html#cb105-5" tabindex="-1"></a>version_counts <span class="co"># Number of IDs that have a version code</span></span></code></pre></div>
+<pre><code>## [1] 0</code></pre>
+<div class="sourceCode" id="cb107"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb107-1"><a href="chapter-6.2-exercise-2.html#cb107-1" tabindex="-1"></a>filtered_df <span class="ot">&lt;-</span> filtered_df <span class="sc">%&gt;%</span></span>
+<span id="cb107-2"><a href="chapter-6.2-exercise-2.html#cb107-2" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">stripped =</span> <span class="fu">sub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">..*$&quot;</span>, <span class="st">&quot;&quot;</span>, Gene_id)) <span class="co"># Create column with stripped IDs</span></span>
+<span id="cb107-3"><a href="chapter-6.2-exercise-2.html#cb107-3" tabindex="-1"></a></span>
+<span id="cb107-4"><a href="chapter-6.2-exercise-2.html#cb107-4" tabindex="-1"></a>ids <span class="ot">&lt;-</span> filtered_df<span class="sc">$</span>stripped[<span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>] <span class="co"># Put stripped IDs into a vector</span></span>
+<span id="cb107-5"><a href="chapter-6.2-exercise-2.html#cb107-5" tabindex="-1"></a></span>
+<span id="cb107-6"><a href="chapter-6.2-exercise-2.html#cb107-6" tabindex="-1"></a><span class="co"># Load in ensembl again (from above)</span></span>
+<span id="cb107-7"><a href="chapter-6.2-exercise-2.html#cb107-7" tabindex="-1"></a>ensembl <span class="ot">&lt;-</span> <span class="fu">useMart</span>(<span class="st">&quot;ensembl&quot;</span>)</span>
+<span id="cb107-8"><a href="chapter-6.2-exercise-2.html#cb107-8" tabindex="-1"></a>ensembl <span class="ot">&lt;-</span> <span class="fu">useDataset</span>(<span class="st">&quot;hsapiens_gene_ensembl&quot;</span>, <span class="at">mart =</span> ensembl)</span>
+<span id="cb107-9"><a href="chapter-6.2-exercise-2.html#cb107-9" tabindex="-1"></a></span>
+<span id="cb107-10"><a href="chapter-6.2-exercise-2.html#cb107-10" tabindex="-1"></a><span class="co"># Map to HGNC symbols</span></span>
+<span id="cb107-11"><a href="chapter-6.2-exercise-2.html#cb107-11" tabindex="-1"></a>map <span class="ot">&lt;-</span> <span class="fu">getBM</span>(</span>
+<span id="cb107-12"><a href="chapter-6.2-exercise-2.html#cb107-12" tabindex="-1"></a>  <span class="at">attributes =</span> <span class="fu">c</span>(<span class="st">&quot;ensembl_gene_id&quot;</span>, <span class="st">&quot;hgnc_symbol&quot;</span>),</span>
+<span id="cb107-13"><a href="chapter-6.2-exercise-2.html#cb107-13" tabindex="-1"></a>  <span class="at">filters =</span> <span class="st">&quot;ensembl_gene_id&quot;</span>,</span>
+<span id="cb107-14"><a href="chapter-6.2-exercise-2.html#cb107-14" tabindex="-1"></a>  <span class="at">values =</span> ids,</span>
+<span id="cb107-15"><a href="chapter-6.2-exercise-2.html#cb107-15" tabindex="-1"></a>  <span class="at">mart =</span> ensembl</span>
+<span id="cb107-16"><a href="chapter-6.2-exercise-2.html#cb107-16" tabindex="-1"></a>)</span>
+<span id="cb107-17"><a href="chapter-6.2-exercise-2.html#cb107-17" tabindex="-1"></a>map</span></code></pre></div>
+<pre><code>##    ensembl_gene_id hgnc_symbol
+## 1  ENSG00000000419        DPM1
+## 2  ENSG00000000457       SCYL3
+## 3  ENSG00000000460       FIRRM
+## 4  ENSG00000000938         FGR
+## 5  ENSG00000000971         CFH
+## 6  ENSG00000001036       FUCA2
+## 7  ENSG00000001084        GCLC
+## 8  ENSG00000001167        NFYA
+## 9  ENSG00000001460       STPG1
+## 10 ENSG00000001461      NIPAL3
+## 11 ENSG00000001561       ENPP4
+## 12 ENSG00000001617      SEMA3F
+## 13 ENSG00000001626        CFTR
+## 14 ENSG00000001629      ANKIB1
+## 15 ENSG00000001630     CYP51A1
+## 16 ENSG00000001631       KRIT1
+## 17 ENSG00000002016       RAD52
+## 18 ENSG00000002330         BAD
+## 19 ENSG00000002549        LAP3
+## 20 ENSG00000002587      HS3ST1</code></pre>
 
 </div>
             </section>
@@ -243,8 +260,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
           </div>
         </div>
       </div>
-<a href="what-is-identifier-mapping.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
-<a href="why-identifiers-are-messy.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="chapter-6.1-exercise-1.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

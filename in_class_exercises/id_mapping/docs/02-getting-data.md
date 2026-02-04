@@ -16,6 +16,22 @@ library(GEOquery)
 ```
 
 ```
+## Loading required package: generics
+```
+
+```
+## 
+## Attaching package: 'generics'
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+##     setequal, union
+```
+
+```
 ## 
 ## Attaching package: 'BiocGenerics'
 ```
@@ -31,10 +47,10 @@ library(GEOquery)
 ## 
 ##     anyDuplicated, aperm, append, as.data.frame, basename, cbind,
 ##     colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
-##     get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
-##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
-##     Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,
-##     table, tapply, union, unique, unsplit, which.max, which.min
+##     get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+##     order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+##     rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+##     unsplit, which.max, which.min
 ```
 
 ```
