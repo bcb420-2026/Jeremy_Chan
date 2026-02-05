@@ -9,7 +9,44 @@ Using **GSE119732**,
   2.  Add colours to the plot separating the different variables in the model
   3.  Filter out lowly expressed genes and re plot the distributions.
 
+```{r}
+library(readr)
+library(GEOquery)
+library(knitr)
+library(dplyr)
+library(tibble)
+library(tidyverse)
+library(ggplot2)
 
+source("./supp_functions.R") # Load in the required functions
+
+gse <- "GSE119732"
+path <- file.path("data", gse)
+files <- list.files(path, pattern = "\\.txt.gz$|\\.tsv.gz$|\\.csv.gz$", 
+                    full.names = TRUE, recursive = TRUE)
+
+x <- safe_read(files[1])
+
+plot_box_1(x[,2:ncol(x)])
+```
+
+```{r}
+plot_density_1(x[,2:ncol(x)])
+```
+
+```{r}
+library(edgeR)
+
+x_cpm <- cpm(y = x[,2:ncol(x)]) # Normalise for library size
+to_remove <- edgeR::filterByExpr(x_cpm,min.count = 3) # Filter lowly expressed genes
+x_cpm_filtered <- x_cpm[to_remove,]
+
+plot_box_1(x_cpm_filtered[,2:ncol(x_cpm_filtered)], main = "GSE119732, lowly expressed genes filtered")
+```
+
+```{r}
+plot_density_1(x_cpm_filtered[,2:ncol(x_cpm_filtered)], main = "GSE119732, lowly expressed genes filtered")
+```
 
 ## Exercise 2 — https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE122380
 
@@ -19,6 +56,53 @@ Using **GSE122380**, confirm whether the ID column contains Ensembl IDs with ver
   2.  Add colours to the plot separating the different variables in the model
   3.  Filter out lowly expressed genes and re plot the distributions.
 
+```{r}
+gse <- "GSE122380"
+fetch_geo_supp(gse)
+
+path <- file.path("data", gse)
+files <- list.files(path, pattern = "\\.txt.gz$|\\.tsv.gz$|\\.csv.gz$", 
+                    full.names = TRUE, recursive = TRUE)
+
+x <- safe_read(files[1])
+
+plot_box_2(x[,2:ncol(x)])
+```
+```{r}
+plot_density_2(x[,2:ncol(x)])
+```
+```{r}
+# Setup a design matrix
+
+colnames(x)
+
+samples <- colnames(x)[2:ncol(x)]
+cell_line <- unlist(lapply(samples,FUN = function(x){unlist(strsplit(x,split = "_"))[1]}))
+time <- unlist(lapply(samples,FUN = function(x){unlist(strsplit(x,split = "_"))[2]}))
+
+sample_data <- data.frame(samples, cell_line, time)
+
+design <- model.matrix(~ 0 + time, data = sample_data)
+rownames(design) <- sample_data$samples
+colnames(design) <- paste0("time", levels(factor(time)))
+
+x_cpm <- cpm(y = x[,2:ncol(x)])
+to_remove_withdesign <- filterByExpr(x_cpm, min.count = 3, design = design)
+x_cpm_filtered_withdesign <- x_cpm[to_remove_withdesign,]
+
+colnames(x_cpm_filtered_withdesign) <- paste(sample_data$time,
+                                             1:nrow(sample_data), sep = "_")
+
+plot_box_2(x_cpm_filtered_withdesign,
+           main = "GSE122380, lowly expressed genes filtered with design")
+```
+```{r}
+plot_density_2(x_cpm_filtered_withdesign,
+           main = "GSE122380, lowly expressed genes filtered with design")
+```
+
 ## Exercise 3 - 
  
 Can you use the worked example to process the above two GEO records?  How?
+
+Yes, but we need to change things that are specific to each GEO record, such as the design matrix. Supplementary functions also are changed by adding new functions to compensate for the way different records organise different samples and variables.

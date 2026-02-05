@@ -13,10 +13,45 @@ plot_box <- function(mat, main = "", ylab = "log2(counts+1)") {
   df <- as.data.frame(mat)
   df_long <- df |>
     mutate(gene = rownames(df)) |>
-    pivot_longer(-gene, names_to = "sample", values_to = "value") |>
-    mutate(value = log2(value + 1))
+    tidyr::pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(
+      value = log2(value + 1))
   
   ggplot(df_long, aes(x = sample, y = value)) +
+    geom_boxplot(outlier.size = 0.2) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    labs(title = main, x = "Sample", y = ylab)
+}
+
+plot_box_1 <- function(mat, main = "", ylab = "log2(counts+1)") {
+  df <- as.data.frame(mat)
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(
+      value = log2(value + 1),
+      group = substr(sample, 1, 1) # Take the first letter of the sample (different variables)
+      )
+  
+  ggplot(df_long, aes(x = sample, y = value, colour = group)) +
+    geom_boxplot(outlier.size = 0.2) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    labs(title = main, x = "Sample", y = ylab)
+}
+
+plot_box_2 <- function(mat, main = "", ylab = "log2(counts+1)") {
+  df <- as.data.frame(mat)
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    tidyr::pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(
+      value = log2(value + 1),
+      group = sub("_.*$", "", sample)  # everything before first "_"
+    )
+  
+  ggplot(df_long, aes(x = sample, y = value, colour = group)) +
     geom_boxplot(outlier.size = 0.2) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
@@ -35,4 +70,63 @@ plot_density <- function(mat, main = "") {
     theme_bw() +
     labs(title = main, x = "log2(counts+1)", y = "Density") +
     guides(colour = "none")
+}
+
+plot_density_1 <- function(mat, main = "") {
+  df <- as.data.frame(mat)
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(
+      value = log2(value + 1),
+      group = substr(sample, 1, 1)
+      )
+  
+  ggplot(df_long, aes(x = value, group = sample, colour = group)) +
+    geom_density() +
+    theme_bw() +
+    labs(title = main, x = "log2(counts+1)", y = "Density") +
+    guides(colour = guide_legend(title = "Variable group"))
+}
+
+plot_density_2 <- function(mat, main = "") {
+  df <- as.data.frame(mat)
+  df_long <- df |>
+    mutate(gene = rownames(df)) |>
+    tidyr::pivot_longer(-gene, names_to = "sample", values_to = "value") |>
+    mutate(
+      value = log2(value + 1),
+      group = sub("_.*$", "", sample)  # everything before first "_"
+    )
+  
+  ggplot(df_long, aes(x = value, group = sample, colour = group)) +
+    geom_density() +
+    theme_bw() +
+    labs(title = main, x = "log2(counts+1)", y = "Density") +
+    guides(colour = guide_legend(title = "Sample group"))
+}
+
+
+safe_read <- function(file) {
+  # First attempt: read as TSV
+  df <- tryCatch(
+    readr::read_tsv(file, show_col_types = FALSE),
+    error = function(e) NULL   # catch fatal errors
+  )
+  
+  # If read_tsv failed entirely:
+  if (is.null(df)) {
+    message("TSV read failed — reading as space-delimited file instead.")
+    return(readr::read_table(file, show_col_types = FALSE))
+  }
+  
+  # If read_tsv returned but with parsing issues:
+  probs <- problems(df)
+  if (nrow(probs) > 0) {
+    message("Parsing issues detected in TSV — reading as space-delimited file instead.")
+    return(readr::read_table(file, show_col_types = FALSE))
+  }
+  
+  # If everything was fine:
+  return(df)
 }
