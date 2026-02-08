@@ -1,0 +1,727 @@
+---
+title: "Assignment 1"
+author: "Jeremy Chan"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    code_folding: hide
+date: "`r Sys.Date()`"
+bibliography: references.bib 
+link-citations: true
+---
+
+## Introduction to the study
+
+In this assignment, we will be analysing the bulk RNA-seq data from GEO accession `GSE253464`, published as part of a study by Martell et al (2025). The authors focuses on the key genes MPC1/MPC2 (mitochondrial pyruvate carrier components), PDHA1/PC (metabolic regulators controlling acetyl-CoA production), and NEUROD1/DCX (neural differentiating genes). The study aims to show that in glioblastoma (GBM) cells that survive both temozolomide and radiation therapy (TMZ-RT), inhibiting MPC through metabolic interventions can reverse and reduce recurrence rates.
+
+### {#conditions}
+The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
+
+### {#interest-dataset}
+This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
+
+## Installing relevant packages
+
+First, I made sure to install all the packages that I will be using for the rest of the analysis.
+
+```{r, message = FALSE, warning = FALSE}
+if(!requireNamespace("knitr", quietly = TRUE)) {
+  install.packages("knitr")
+}
+
+if(!requireNamespace("dplyr", quietly = TRUE)) {
+  install.packages("dplyr")
+}
+
+if(!requireNamespace("readr", quietly = TRUE)) {
+  install.packages("readr")
+}
+
+if(!requireNamespace("rmarkdown", quietly = TRUE)) {
+  install.packages("rmarkdown")
+}
+
+if(!requireNamespace("tidyr", quietly = TRUE)) {
+  install.packages("tidyr")
+}
+
+if(!requireNamespace("patchwork", quietly = TRUE)) {
+  install.packages("patchwork")
+}
+
+if(!requireNamespace("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2")
+}
+
+if(!requireNamespace("ggrepel", quietly = TRUE)) {
+  install.packages("ggrepel")
+}
+
+if(!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
+  install.packages("ComplexHeatmap")
+}
+
+if(!requireNamespace("circlize", quietly = TRUE)) {
+  install.packages("circlize")
+}
+
+if(!requireNamespace("tibble", quietly = TRUE)) {
+  install.packages("tibble")
+}
+
+if(!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+if(!requireNamespace("biomaRt", quietly = TRUE)) {
+  BiocManager::install("biomaRt")
+}
+
+if(!requireNamespace("GEOquery", quietly = TRUE)) {
+  BiocManager::install("GEOquery")
+}
+
+if(!requireNamespace("edgeR", quietly = TRUE)) {
+  BiocManager::install("edgeR")
+}
+```
+
+## Obtaining, cleaning, and mapping data
+
+In this section, I will first pull the data from the GEO database. I will then clean the data by dealing with duplicate and incorrectly formatted genes, then demonstrate identifier mapping.
+
+### Pulling data in from GEO
+
+To begin, I will use the `GEOquery` package to obtain the raw count data from the GSE database.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in the relevant libraries
+library("GEOquery")
+library("readr")
+library("rmarkdown")
+library("knitr")
+
+# Check if the GEO data has already been pulled in; if not then get data files
+if(!file.exists("GSE253464/GSE253464_counts.unnormalized.csv.gz")) {
+  getGEOSuppFiles("GSE253464", makeDirectory = TRUE)
+}
+
+# Read in the raw counts
+raw_counts <- read_csv("GSE253464/GSE253464_counts.unnormalized.csv.gz", show_col_types = FALSE)
+
+# Display the first 10 columns and rows for report
+paged_table(raw_counts[1:10, 1:10])
+```
+
+**Table 1: Unnormalised read counts of GSE253646.** Table showing the unnormalised read counts of each samples (columns 7 to 18) for each gene (row). Columns 2 to 6 of the table has additional information about each gene including their chromosomal position, strand orientation, and gene length. Displayed table is truncated to 10 rows and 10 columns for visibility.
+
+### Quality control and cleaning of data
+
+Next, I will summarise the overall statistics of the data as well as look over it to make sure that we move on with the correct gene dataset for the upcoming steps.
+
+```{r, message = FALSE, warning = FALSE}
+# Remove chromosomal positions, strand information, and length
+counts <- raw_counts[, -(2:6)]
+
+num_samples <- ncol(counts) - 1 # Number of samples
+lib_sizes <- colSums(counts[, 2:ncol(counts)], na.rm = TRUE) # Get library size for each sample
+lib_sizes <- as.data.frame(lib_sizes)
+
+counts$Geneid_clean <- sub("_[0-9]+$", "", counts$Geneid) # Get original HGNC symbol, some confounded by numbers
+num_genes <- nrow(counts)
+num_unique_genes <- nrow(unique(counts["Geneid"])) # Get unique number of genes
+
+# Display library size in report
+paged_table(lib_sizes)
+```
+
+**Table 2: Library size of each sample.** Table showing the library size for each sample, where the first column is the sample name and the second column is the sum of read counts across all genes that were sequenced for that sample.
+
+### {#outliers}
+### {#samples}
+From this quick statistical summary, we see that there are `r num_genes` rows, each indicating a gene. However, I noticed that there were some duplicates. After cleaning their gene IDs, I found that there are `r num_unique_genes` unique genes instead, meaning that there are 34 rows that have duplicates. Next, I also wanted to investigate the samples. Each treatment condition has 3 duplicates, over 4 different treatment conditions. I then looked at the library size of each sample to ensure that there are no samples that have a relatively low read count. The library size table shows that it ranges from `r min(lib_sizes)` to `r max(lib_sizes)`, but all samples have normal read counts when compared to each other. Therefore, we will not remove any samples. The paper also did not mention any sample outliers.
+
+### {#replicates}
+I will handle replicates by keeping all samples as separate observations rather than averaging counts within each treatment group. This will improve statistical power and provides more reliable differential expression testing.
+
+Now that I know that there are some genes that correspond to multiple rows on the dataset, I opted to sum their read counts and then remove the duplicate rows.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("dplyr")
+
+# Identify which columns are the sample count columns
+count_cols <- setdiff(colnames(counts), c("Geneid", "Geneid_clean"))
+
+# Sum counts for duplicated genes (same Geneid_clean)
+counts_summed <- counts %>%
+  group_by(Geneid_clean) %>%
+  summarise(
+    Geneid = first(Geneid), # keep one representative original ID
+    across(all_of(count_cols), ~ sum(.x, na.rm = TRUE)),
+    .groups = "drop"
+  ) %>%
+  relocate(Geneid, Geneid_clean)
+
+# Replace counts with the deduplicated/summed version
+counts <- counts_summed
+```
+
+This leaves us with 43797 genes, removing `r nrow(raw_counts) - nrow(counts_summed)` duplicate rows.
+
+### {#not-unique-expression}
+There are also some genes that appear to be formatted incorrectly - their HGNC ID has only numerical characters, and their formatting appears to be wrong on the table. I will remove these rows and genes from the table.
+
+```{r, message = FALSE, warning = FALSE}
+# Get number of genes whose HGNC symbols are only numbers
+num_numeric <- sum(grepl("^[0-9]+$", counts$Geneid_clean))
+
+# Filter out genes whose HGNC symbols are only numbers
+counts <- counts %>%
+  filter(!grepl("^[0-9]+$", Geneid_clean))
+```
+
+This leaves us with `r nrow(counts)` genes remaining in the dataset. There are some genes that appear to be zero in all samples, but we will not remove them for now as we will be filtering out lowly expressed genes in the upcoming steps.
+
+### Mapping to HUGO symbols
+### {#mapping}
+The initial dataset from GEO uses the HGNC symbols for its gene IDs, so all genes have a corresponding HUGO symbol. However, I will demonstrate identifier mapping by mapping the HGNC symbols to its corresponding ensembl gene ID(s), if they exist.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("biomaRt")
+
+# Get HGNC symbols as a column of a dataframe
+symbols <- counts$Geneid_clean
+
+# Use the homosapiens gene ensembl biomaRt
+ensembl <- useMart("ensembl")
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+
+# Map the HGNC symbols to the ensembl gene IDs
+map <- getBM(
+  attributes = c("hgnc_symbol", "ensembl_gene_id"),
+  filters = "hgnc_symbol",
+  values = symbols,
+  mart = ensembl
+)
+
+# Get HGNC symbols as an array of string
+symbols <- counts[2]
+
+# Remove all duplicates (some HGNC symbols have multiple ensembl gene IDs) for display's sake
+symbols_map <- symbols %>%
+  left_join(map, by = c("Geneid_clean" = "hgnc_symbol")) %>%
+  group_by(Geneid_clean) %>%
+  slice(1) %>%
+  ungroup()
+
+# Rename columns
+colnames(symbols_map) <- c("HGNC symbol", "ensembl gene ID")
+  
+# Display the first 20 genes with their HGNC symbol and ensembl gene IDs for report
+paged_table(symbols_map[1:20, ])
+```
+
+**Table 3: Identifier mapping from HGNC symbol to ensembl gene ID.** Table shows the HGNC symbols that are in the initial dataset along with their corresponding ensembl gene ID. For HGNC symbols that have multiple ensembl gene IDs, only the first one was kept for visualisation purposes. Table is truncated to the first 20 genes for visualisation purposes.
+
+There are a number of genes that do not have corresponding ensembl gene IDs. However, I have opted to not remove them because the ensembl database only updates periodicially (once every 3 months), while the HGNC updates nearly daily to include more novel genes. Removing such genes may prevent discovering hypothetical functions of novel genes in the upcoming steps.
+
+## Normalisation of data
+
+I will normalise the data now to minimise unwanted variation in the data, such as difference in library sizes (as shown above) and in how reads are distributed between genes.
+
+### Defining groups
+
+My first step in normalisation is to separate the groups. The main groups that were mentioned in the paper are the different treatment types. I will separate each sample by its treatment, and its replicate number just in case I need to use it in future steps.
+
+```{r, message = FALSE, warning = FALSE}
+# Get the names of each sample
+sample_names <- colnames(counts)[3:ncol(counts)]
+
+# Separate the names by "_" to extract replicate number and treatment
+samples <- data.frame(sample = sample_names) %>%
+  dplyr::mutate(
+    parts = strsplit(sample, "_"),
+    replicate = sapply(parts, function(x) x[length(x) - 1]),
+    treatment = sapply(parts, function(x) paste(x[2:(length(x) - 2)], collapse = "_"))
+  ) %>%
+  dplyr::select(sample, treatment, replicate)
+
+# Display the table
+paged_table(samples)
+```
+
+**Table 4: Sample by its treatment group and replicate number.** Table shows the full sample name (column 1), as well the extracted treatment names/groups that it is part of (column 2), and the replicate number in its respective group (column 3).
+
+### Apply TMM normalisation
+
+We normalized the bulk RNA-seq counts using the TMM (Trimmed Mean of M-values) method in `edgeR`. TMM corrects for differences in sequencing depth and compositional bias by trimming genes with extreme fold-changes and extreme expression before estimating scaling factors. This is preferred over methods such as RPKM/FPKM for differential expression because those approaches do not robustly correct for composition bias, potentially creating inaccurate results during the future steps.
+
+### {#final-coverage}
+In this step, we will also filter out lowly expressed genes using `edgeR`'s `filterByExpr()` function. This will remove genes that have relatively low read counts, as was mentioned during the cleaning steps above. This resulted in 15,630 genes being kept across 12 samples, filtering out 28,154 lowly expressed genes.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("edgeR")
+
+# Create count-only matrix
+cleaned_data_matrix <- counts[, 3:ncol(counts)] # Remove gene ID columns
+rownames(cleaned_data_matrix) <- counts$Geneid_clean # Add gene IDs as row names instead
+
+# Make each treatment a factor (level)
+samples$treatment <- factor(samples$treatment)
+
+# Create a DGEList object
+d <- DGEList(counts = as.matrix(cleaned_data_matrix),
+                    group = samples$treatment)
+
+# Filter out lowly expressed genes
+keep <- filterByExpr(d, group = samples$treatment)
+d <- d[keep, , keep.lib.sizes = FALSE]
+
+# Calculate scaling factors for normalisation through TMM
+d <- calcNormFactors(d, method = "TMM")
+
+# Get counts per million of scaling factors
+normalised_counts <- cpm(d)
+
+# Display first 10 rows and columns of normalised counts for report
+df_normalised_counts <- as.data.frame(normalised_counts) # Convert to dataframe first so paged_table can be used
+paged_table(df_normalised_counts[1:10, 1:10])
+```
+
+**Table 5: Normalised read counts for each sample and gene.** Table of gene expression values after TMM normalization, reported as counts-per-million (CPM). These normalized values correct for differences in library size and compositional bias across samples, allowing expression levels to be accurately compared across treatment conditions.
+
+### Comparison of plots
+
+Now that I have the normalised data, I will now plot boxplots and density plots to visualise the difference between the raw versus normalised counts.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("ggplot2")
+library("tidyr")
+library("patchwork")
+
+# Convert the raw counts matrix into a long format (one row per gene-sample), then join metadata
+raw_long <- as.data.frame(counts[, 3:ncol(counts)]) %>%
+  pivot_longer(cols = everything(), names_to = "sample", values_to = "count") %>%
+  left_join(samples, by = "sample") %>%
+  mutate(type = "Raw")
+
+# Convert the normalised counts matrix into a long format (one row per gene-sample), then join metadata
+norm_long <- as.data.frame(normalised_counts) %>%
+  pivot_longer(cols = everything(), names_to = "sample", values_to = "count") %>%
+  left_join(samples, by = "sample") %>%
+  mutate(type = "TMM normalized")
+```
+
+```{r, fig.width = 14, fig.height = 6, message = FALSE, warning = FALSE}
+# Create boxplot for both the raw and normalised count data
+p_raw_box <- ggplot(raw_long, aes(x = sample, y = log2(count + 1), fill = treatment)) +
+  geom_boxplot(outlier.size = 0.4) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Raw counts", y = "log2(count + 1)", x = "", fill = "Treatment")
+
+p_norm_box <- ggplot(norm_long, aes(x = sample, y = log2(count + 1), fill = treatment)) +
+  geom_boxplot(outlier.size = 0.4) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "TMM normalised counts", y = "log2(CPM + 1)", x = "", fill = "Treatment")
+
+# Combine the two boxplots together for easy comparison
+p_raw_box + p_norm_box
+```
+
+**Figure 1: Boxplots of raw and TMM normalised expression values across samples.** Each box represents the distribution of gene expression values within a single sample. The left panel shows raw read counts on a log2(count + 1) scale, and the right panel shows TMM normalised counts-per-million (CPM) on a log2(CPM + 1) scale. Samples are coloured by treatment group (red = Naive, green = TMZRT, cyan = TMZRT + UK5099, purple = UK5099), the horizontal line in each box is the median, the box spans the interquartile range, and points represent outliers.
+
+From the raw counts boxplots (left) in Figure 1, the samples show noticeable differences in their overall count distributions, which is expected because sequencing depth and RNA composition can vary between libraries. After applying TMM normalization (right), the boxplots become more aligned across samples, indicating that scaling factors have adjusted for library size and compositional bias. This will improve comparability between samples and supports using the normalized data for the upcoming downstream analyses, such as MDS visualization and differential expression testing.
+
+```{r, fig.width = 14, fig.height = 6, message = FALSE, warning = FALSE}
+# Create density plot for both the raw and normalised count data
+p_raw_den <- ggplot(raw_long, aes(x = log2(count + 1), colour = treatment)) +
+  geom_density() +
+  theme_bw() +
+  labs(title = "Raw counts density", x = "log2(count + 1)", y = "Density", colour = "Treatment")
+
+p_norm_den <- ggplot(norm_long, aes(x = log2(count + 1), colour = treatment)) +
+  geom_density() +
+  theme_bw() +
+  labs(title = "TMM normalized density", x = "log2(CPM + 1)", y = "Density", colour = "Treatment")
+
+# Combine the two density plots together for easy comparison
+p_raw_den + p_norm_den
+```
+
+**Figure 2: Density plots of raw and TMM normalised expression distributions.** The left panel shows the distribution of raw gene expression values across all genes for each sample on a log2(count + 1) scale, while the right panel shows the distribution after TMM normalisation as log2(CPM + 1). Each coloured curve represents one sample (red = Naive, green = TMZRT, cyan = TMZRT + UK5099, purple = UK5099), grouped by treatment condition, and the height of the curve indicates the relative frequency of genes at a given expression level.
+
+Within Figure 2, in the raw counts density plot (left), the curves show small shifts between samples, reflecting differences in sequencing depth and RNA composition. After TMM normalisation (right), the density curves indicate the decrease in frequency in lowly expressed genes. This, along with the boxplots, supports the use of the normalised CPM values for the upcoming downstream exploratory analyses and differential expression testing.
+
+## Differential expression analysis
+
+With the normalised data, I will now move on to conducting differential expression (DE) analysis to see if the genes of interest are up- or down-regulated when comparing naive cells to treatment conditions.
+
+### Factoring by MDS plot
+
+The first step in DE is to make sure we are choosing the correct factor when making our design matrix. We will do this by plotting a multidimensional scaling (MDS) plot to visualise how the samples cluster.
+
+```{r, message = FALSE, warning = FALSE}
+# Plot the MDS plot by treatment
+plotMDS(d, 
+        labels = samples$treatment, 
+        col = as.numeric(samples$treatment),
+        main = "Exploratory MDS plot (coloured by treatment)")
+
+# Add legend mapping to treatment
+legend("center",
+       legend = levels(samples$treatment),
+       col = seq_along(levels(samples$treatment)),
+       pch = 16,
+       bty = "n")
+```
+
+**Figure 3: Exploratory multi-dimensional scaling (MDS) plot of RNA-seq samples coloured by treatment.** Each point represents one RNA-seq sample, positioned based on overall similarity in gene expression profiles (samples closer together have more similar expression patterns). The x-axis (Leading logFC dim 1) and y-axis (Leading logFC dim 2) represent the two dimensions capturing the largest sources of variation across the dataset, with the percentage values indicating the proportion of variation explained by each dimension. Points are coloured and labelled according to treatment group (black = Naive, red = TMZRT, green = TMZRT + UK5099, blue = UK5099).
+
+Figure 3 shows that samples cluster primarily by treatment condition, with replicates from the same treatment grouping closely together. This indicates that treatment is a major driver of expression differences in the dataset. Therefore, treatment will be used as the main grouping variable in the design matrix for downstream differential expression analysis.
+
+### Creating and testing design matrix
+
+I will create the design matrix now, grouping by treatment.
+
+```{r, message = FALSE, warning = FALSE}
+# Create design matrix
+design <- model.matrix(~ 0 + treatment, data = samples)
+colnames(design) <- levels(samples$treatment) # Name the columns accordingly to treatment
+
+edge <- estimateDisp(d, design) # Estimate dispersions
+fit <- glmQLFit(d, design) # Fit quasi-lieklihood
+```
+
+Next, I tested for differential expression between treatment conditions using `edgeR`’s quasi-likelihood (QL) framework. We defined a set of biologically relevant contrasts between treatments and ran QL F-tests to obtain gene-level test statistics and raw p-values for each comparison. For each contrast, we extracted the full results table containing log2 fold-change (logFC), average expression (logCPM), the test statistic, the raw p-value (PValue), and the multiple-hypothesis-testing adjusted p-value (FDR).
+
+I corrected p-values using the Benjamini-Hochberg false discovery rate (FDR) method, which is the standard approach for RNA-seq because thousands of genes are tested simultaneously. FDR controls the expected proportion of false positives among the genes called significant, providing a balance between sensitivity and error control. This is generally preferred over more conservative methods such as Bonferroni correction, which can greatly reduce power in high-dimensional genomic datasets. I chose this over the more conservative Bonferroni correction because it could greatly reduce the number of differentially expressed genes that will be present in our dataset for the upcoming DE step.
+
+```{r, message = FALSE, warning = FALSE}
+library("tibble")
+
+# Define contrasts between each treatment
+contrasts <- makeContrasts(
+  `TMZRT_vs_Naive` = TMZRT - Naive,
+  `UK5099_vs_Naive` = UK5099 - Naive,
+  `TMZRT_UK5099_vs_Naive` = TMZRT_UK5099 - Naive,
+  `TMZRT_UK5099_vs_TMZRT` = TMZRT_UK5099 - TMZRT,
+  levels = design
+)
+
+# Run quasi-likelihood F-tetsts for each contrast
+qlf_tmzrt_vs_naive <- glmQLFTest(fit, 
+                                 contrast = contrasts[, "TMZRT_vs_Naive"])
+qlf_uk_vs_naive <- glmQLFTest(fit, 
+                              contrast = contrasts[, "UK5099_vs_Naive"])
+qlf_combo_vs_naive <- glmQLFTest(fit, 
+                                 contrast = contrasts[, "TMZRT_UK5099_vs_Naive"])
+qlf_combo_vs_tmzrt <- glmQLFTest(fit, 
+                                 contrast = contrasts[, "TMZRT_UK5099_vs_TMZRT"])
+
+# Extract full results tables for each contrast
+tab_tmzrt_vs_naive <- topTags(qlf_tmzrt_vs_naive, n = Inf)$table %>%
+  rownames_to_column("gene")
+tab_uk_vs_naive <- topTags(qlf_uk_vs_naive, n = Inf)$table %>%
+  rownames_to_column("gene")
+tab_combo_vs_naive <- topTags(qlf_combo_vs_naive, n = Inf)$table %>%
+  rownames_to_column("gene")
+tab_combo_vs_tmzrt <- topTags(qlf_combo_vs_tmzrt, n = Inf)$table %>%
+  rownames_to_column("gene")
+```
+
+To summarize the results, I counted how many genes were significant under a standard raw p-value threshold (PValue \< 0.05). Because thousands of genes are tested simultaneously, we also reported the number of genes passing multiple hypothesis correction using the false discovery rate threshold (FDR \< 0.05). These counts were calculated for each contrast and combined into a summary table for reporting.
+
+```{r, message = FALSE, warning = FALSE}
+# Helper function to count how many genes pass p-value and FDR threshold (both < 0.05 = significant)
+count_de <- function(tab, p_thresh = 0.05, fdr_thresh = 0.05, logfc_thresh = 1) {
+  out <- list(
+    n_tested = nrow(tab),
+    n_p = sum(tab$PValue < p_thresh, na.rm = TRUE),
+    n_fdr = sum(tab$FDR < fdr_thresh, na.rm = TRUE)
+  )
+  return(out)
+}
+
+# Count number of significant genes for each contrast
+de_tmzrt_vs_naive <- count_de(tab_tmzrt_vs_naive)
+de_uk_vs_naive <- count_de(tab_uk_vs_naive)
+de_combo_vs_naive <- count_de(tab_combo_vs_naive)
+de_combo_vs_tmzrt <- count_de(tab_combo_vs_tmzrt)
+
+# Combine all the counts into a summary table for report
+de_summary <- data.frame(
+  contrast = c("TMZRT vs Naive", "UK5099 vs Naive", "TMZRT_UK5099 vs Naive",
+               "TMZRT_UK5099 vs TMZRT"),
+  n = c(de_tmzrt_vs_naive$n_tested, de_uk_vs_naive$n_tested,
+               de_combo_vs_naive$n_tested, de_combo_vs_tmzrt$n_tested),
+  n_p_lt_0.05 = c(de_tmzrt_vs_naive$n_p, de_uk_vs_naive$n_p,
+                  de_combo_vs_naive$n_p, de_combo_vs_tmzrt$n_p),
+  n_fdr_lt_0.05 = c(de_tmzrt_vs_naive$n_fdr, de_uk_vs_naive$n_fdr,
+                    de_combo_vs_naive$n_fdr, de_combo_vs_tmzrt$n_fdr)
+)
+
+# Display table for report
+paged_table(de_summary)
+```
+
+**Table 6: Summary of differential expression results across treatment contrasts.** For each pairwise comparison, the table reports the total number of genes tested (n), the number of genes significant at the raw p-value threshold (PValue \< 0.05, n_p_lt_0.05), and the number of genes significant after multiple testing correction using the Benjamini-Hochberg false discovery rate (FDR \< 0.05, n_fdr_lt_0.05).
+
+For the downstream analyses, only the genes that pass the FDR test (FDR \< 0.05) will be used.
+
+### Volcano plot of each comparison
+
+Now that I have genes that are statistically significant, I will now construct volcano plots that will illustrate which genes that are down-regulated and up-regulated. I focused only on the three treatment versus Naive volcano plots because these comparisons most directly test the study’s main question; how TMZ-RT in combination with metabolic inhibition (UK-5099 treatment) shift gene expression away from the therapy-naive baseline.
+
+Additionally, the paper refers to gene of interest PDH at the level of the enzyme complex rather than a specific subunit, I will highlight the PDHA1 gene in the volcano plots as a representative PDH gene since it encodes the main catalytic E1 alpha subunit.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("ggrepel")
+
+# Genes that are of interest in the paper
+highlight_genes <- c("NEUROD1", "DCX", "MPC1", "MPC2", "PC", "PDHA1")
+
+# Build volcano plot data, using FDR and log-fold change to determine direction
+volcano_df <- tab_tmzrt_vs_naive %>%
+  mutate(Significant = FDR < 0.05,
+         direction = case_when(
+           FDR < 0.05 & logFC > 1 ~ "Up-regulated",
+           FDR < 0.05 & logFC < -1 ~ "Down-regulated",
+           TRUE ~ "Not significant"))
+
+# Select the top and highlighted genes to label
+label_volcano <- volcano_df %>%
+  filter(gene %in% highlight_genes | rank(FDR) <= 10)
+
+# Build volcano plot
+ggplot(volcano_df, aes(x = logFC, y = -log10(PValue))) +
+  geom_point(aes(color = direction), alpha = 0.65, size = 1.3) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_text_repel(data = label_volcano, aes(label = gene), box.padding = 0.5, size = 3, max.overlaps = Inf) +
+  theme_bw() +
+  labs(
+    title = "Gene expression changes in treatment conditions TMZ-RT vs Naive",
+    x = "log2 fold-change (logFC)",
+    y = "-log10(p-value)",
+    color = NULL
+  )
+```
+
+**Figure 4: Volcano plot of differential expression results for TMZ-RT vs. Naive.** Each point represents one gene tested for differential expression using `edgeR`'s quasi-likelihood framework. The x-axis shows the estimated log2 fold-change between TMZ-RT and therapy-naive conditions, and the y-axis shows the strength of evidence against the null hypothesis of -log10(p-value). Genes are coloured by the direction of change using thresholds of FDR \< 0.05 and \|logFC\| \> 1 (up-regulated, down-regulated, or not significant). Dashed vertical lines indicate the fold-change threshold, and the dashed horizontal line indicates the p-value threshold. Selected genes are labelled, including the top 10 hits by FDR and genes of interest from the study (NEUROD1, DCX, MPC1, MPC2, PC, PDHA1).
+
+In Figure 4, there are many genes show strong differential expression, most being up-regulated. Among the study’s highlighted genes, the neuronal differentiation markers NEUROD1 and DCX show clear down-regulation, and PC is also modestly down-regulated, consistent with suppression of a differentiation-associated program after TMZ-RT exposure. In contrast, key metabolic genes emphasized in the paper (MPC1, MPC2, and PDHA1) do not pass the FDR significance threshold in this comparison, suggesting that their regulation may be more subtle at the transcript level, and may become clearer under additional metabolic intervention conditions (such as UK-5099) rather than TMZ-RT alone.
+
+```{r, message = FALSE, warning = FALSE}
+# Build volcano plot data, using FDR and log-fold change to determine direction
+volcano_df <- tab_uk_vs_naive %>%
+  mutate(Significant = FDR < 0.05,
+         direction = case_when(
+           FDR < 0.05 & logFC > 1 ~ "Up-regulated",
+           FDR < 0.05 & logFC < -1 ~ "Down-regulated",
+           TRUE ~ "Not significant"))
+
+# Select the top genes to label
+label_volcano <- volcano_df %>%
+  filter(gene %in% highlight_genes | rank(FDR) <= 10)
+
+# Build volcano plot
+ggplot(volcano_df, aes(x = logFC, y = -log10(PValue))) +
+  geom_point(aes(color = direction), alpha = 0.65, size = 1.3) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_text_repel(data = label_volcano, aes(label = gene), size = 3, box.padding = 0.5, max.overlaps = Inf) +
+  theme_bw() +
+  labs(
+    title = "Gene expression changes in treatment conditions UK5099 vs Naive",
+    x = "log2 fold-change (logFC)",
+    y = "-log10(p-value)",
+    color = NULL
+  )
+```
+
+**Figure 5: Volcano plot of differential expression results for UK5099 vs. Naive.** Each point represents one gene tested for differential expression using `edgeR`'s quasi-likelihood framework. The x-axis shows the estimated log2 fold-change between UK5099 and therapy-naive conditions, and the y-axis shows the strength of evidence against the null hypothesis of -log10(p-value). Genes are coloured by the direction of change using thresholds of FDR \< 0.05 and \|logFC\| \> 1 (up-regulated, down-regulated, or not significant). Dashed vertical lines indicate the fold-change threshold, and the dashed horizontal line indicates the p-value threshold. Selected genes are labelled, including the top 10 hits by FDR and genes of interest from the study (NEUROD1, DCX, MPC1, MPC2, PC, PDHA1).
+
+In Figure 5, the overall pattern shows both up-regulated and down-regulated genes, suggesting that UK-5099 exposure is associated with bi-directional transcriptional changes rather than a one-direction global shift. However, the key genes highlighted from the study’s metabolic and differentiation focus (MPC1, MPC2, PDHA1, PC, NEUROD1, and DCX) do not pass the FDR \< 0.05 threshold in this comparison, indicating that these specific pathways are not strongly altered at the transcript level by UK-5099 alone relative to the therapy-naive state. This suggests that the major effects of MPC inhibition may occur through changes in metabolic activity and protein function rather than large changes in gene expression, and can point to this mono-treatment being ineffective.
+
+```{r, message = FALSE, warning = FALSE}
+# Build volcano plot data, using FDR and log-fold change to determine direction
+volcano_df <- tab_combo_vs_naive %>%
+  mutate(Significant = FDR < 0.05,
+         direction = case_when(
+           FDR < 0.05 & logFC > 1 ~ "Up-regulated",
+           FDR < 0.05 & logFC < -1 ~ "Down-regulated",
+           TRUE ~ "Not significant"))
+
+# Select the top genes to label
+label_volcano <- volcano_df %>%
+  filter(gene %in% highlight_genes | rank(FDR) <= 10)
+
+# Build volcano plot
+ggplot(volcano_df, aes(x = logFC, y = -log10(PValue))) +
+  geom_point(aes(color = direction), alpha = 0.65, size = 1.3) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_text_repel(data = label_volcano, aes(label = gene), size = 3, box.padding = 0.5, max.overlaps = Inf) +
+  theme_bw() +
+  labs(
+    title = "Gene expression changes in treatment conditions TMZRT + UK5099 vs Naive",
+    x = "log2 fold-change (logFC)",
+    y = "-log10(p-value)",
+    color = NULL
+  )
+```
+
+**Figure 6: Volcano plot of differential expression results for combination treatment (TMZ-RT + UK5099) vs. Naive.** Each point represents one gene tested for differential expression using `edgeR`'s quasi-likelihood framework. The x-axis shows the estimated log2 fold-change between TMZ-RT + UK5099 and therapy-naive conditions, and the y-axis shows the strength of evidence against the null hypothesis of -log10(p-value). Genes are coloured by the direction of change using thresholds of FDR \< 0.05 and \|logFC\| \> 1 (up-regulated, down-regulated, or not significant). Dashed vertical lines indicate the fold-change threshold, and the dashed horizontal line indicates the p-value threshold. Selected genes are labelled, including the top 10 hits by FDR and genes of interest from the study (NEUROD1, DCX, MPC1, MPC2, PC, PDHA1).
+
+In Figure 6, there is again a strong differential expression signal, with many genes showing large effect sizes and high statistical significance. Similar to the TMZRT vs. Naive comparison, the neuronal differentiation markers NEUROD1 and DCX remain down-regulated, suggesting continued suppression of differentiation-associated expression in the treated condition. The metabolic genes highlighted from the study (MPC1, MPC2, and PDHA1) do not pass the FDR significance threshold in this comparison, indicating that the combined treatment does not strongly shift these transcripts relative to the naive baseline. Overall, this pattern suggests that the transcriptional differences in this dataset are primarily driven by TMZ-RT exposure, with UK-5099 not producing a significant additional transcript-level shift.
+
+### Heatmap of top genes
+
+Next, I created heatmaps of the top 25 differentially expressed genes to visualise expression patterns across samples and confirm whether samples cluster by treatment condition. In addition to the TMZ-RT vs. Naive comparison, which proved to be the main driver in the volcano plot analysis, I also included a heatmap for TMZ-RT + UK5099 vs TMZ-RT, because this contrast directly tests the study’sclaim that MPC inhibition through UK5099 alters the post-TMZ-RT transcriptional state rather than having strong effects on its own.
+
+```{r, message = FALSE, warning = FALSE}
+# Load in relevant libraries
+library("ComplexHeatmap")
+library("circlize")
+
+# Select the top 25 genes by FDR for the heatmap
+top_hits <- tab_tmzrt_vs_naive %>%
+  arrange(FDR, PValue) %>%
+  slice_head(n = 25)
+top_genes <- top_hits$gene
+
+# Compute logCPM from the filtered DGEList for better visualisation
+logcpm <- cpm(d, log = TRUE, prior.count = 1)
+
+# Keep only the top 25 genes
+hm_mat <- logcpm[top_genes, , drop = FALSE]
+
+# Calculate the z-score per gene for heatmap
+hm_z <- t(scale(t(hm_mat)))
+
+# Annotation for treatment labelling on heatmap
+annotation_col <- data.frame(treatment = samples$treatment)
+rownames(annotation_col) <- samples$sample
+
+# Define colours for treatments
+treat_cols <- c(
+  "Naive" = "darkred",
+  "TMZRT" = "darkgreen",
+  "TMZRT_UK5099" = "cyan",
+  "UK5099" = "purple"
+)
+
+ha <- HeatmapAnnotation(
+  treatment = annotation_col$treatment,
+  col = list(treatment = treat_cols),
+  annotation_name_side = "left"
+)
+
+# Choose colour for z-scores
+col_fun <- colorRamp2(c(-2, 0, 2), c("blue", "white", "red"))
+
+# Create heatmap
+Heatmap(
+  hm_z,
+  name = "Z-score",
+  col = col_fun,
+  top_annotation = ha,
+  show_row_names = TRUE,
+  row_names_gp = grid::gpar(fontsize = 8),
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  row_title = "Top 25 genes (from Naive vs. TMZ-RT)",
+  row_title_gp = grid::gpar(fontsize = 10),
+  column_title = "Samples",
+  heatmap_legend_param = list(title = "Expression\n(z-score)")
+)
+```
+
+**Figure 7: Heatmap of the top 25 differentially expressed genes in TMZRT vs. Naive.** Rows represent the top 25 genes ranked by FDR from the TMZ-RT vs Naive `edgeR` quasi-likelihood test, and columns represent samples. Expression values are shown as per-gene z-scores calculated from logCPM values (blue = lower relative expression, red = higher relative expression). Samples are hierarchically clustered, and the treatment group for each sample is indicated by the annotation bar at the top.
+
+The heatmap shows that the top 25 genes identified from the TMZ-RT vs. Naive comparison separate the samples into distinct clusters, with naive samples grouping together and treated samples grouping separately. This indicates that TMZ-RT exposure produces a consistent transcriptional shift across replicates, and that the strongest differential expression signals are sufficient to distinguish treatment groups based on global expression patterns.
+
+```{r, message = FALSE, warning = FALSE}
+# Select the top 25 genes by FDR for the heatmap
+top_hits <- tab_combo_vs_tmzrt %>%
+  arrange(FDR, PValue) %>%
+  slice_head(n = 25)
+top_genes <- top_hits$gene
+
+# Compute logCPM from the filtered DGEList for better visualisation
+logcpm <- cpm(d, log = TRUE, prior.count = 1)
+
+# Keep only the top 25 genes
+hm_mat <- logcpm[top_genes, , drop = FALSE]
+
+# Calculate the z-score per gene for heatmap
+hm_z <- t(scale(t(hm_mat)))
+
+# Create heatmap
+Heatmap(
+  hm_z,
+  name = "Z-score",
+  col = col_fun,
+  top_annotation = ha,
+  show_row_names = TRUE,
+  row_names_gp = grid::gpar(fontsize = 8),
+  show_column_names = FALSE,
+  cluster_rows = TRUE,
+  cluster_columns = TRUE,
+  row_title = "Top 25 genes (from Combo vs. TMZRT)",
+  row_title_gp = grid::gpar(fontsize = 10),
+  column_title = "Samples",
+  heatmap_legend_param = list(title = "Expression\n(z-score)")
+)
+```
+
+**Figure 8: Heatmap of the top 25 differentially expressed genes in TMZRT + UK5099 vs TMZRT.** Rows represent the top 25 genes ranked by FDR from the `edgeR` quasi-likelihood test comparing TMZRT + UK5099 to TMZRT alone, and columns represent samples. Expression values are shown as per-gene z-scores calculated from logCPM values (blue = lower relative expression, red = higher relative expression). Samples are hierarchically clustered, and treatment group is indicated by the annotation bar at the top.
+
+The heatmap shows that the top 25 genes from the TMZRT + UK5099 vs TMZRT comparison separate samples by treatment condition, with replicates clustering together within each group. This indicates that adding UK5099 after TMZRT produces a consistent transcript-level shift relative to TMZRT alone. This contrast is particularly relevant to the study’s main hypothesis, as it directly tests whether MPC inhibition alters the post-TMZRT transcriptional state rather than only shifting expression relative to the therapy-naive baseline.
+
+## Conclusion
+
+In this report, I performed a bulk RNA-seq differential expression analysis using a publicly available GBM dataset (GEO accession number: GSE253464) comparing therapy-naive cells to TMZ-RT exposure and metabolic inhibition with the MPC inhibitor UK5099. Raw counts were quality controlled, filtered, and normalized using TMM, followed by exploratory visualizations (boxplots, density plots, and MDS) to confirm sample structure and guide model design. Differential expression was then tested using `edgeR`’s quasi-likelihood framework, and results were summarized using significance thresholds (raw p-values and FDR), volcano plots, and heatmaps to highlight treatment-driven expression changes. Overall, the results are consistent with the paper’s aim by showing strong TMZ-RT-associated transcriptional shifts and down-regulation of neuronal differentiation markers (NEUROD1 and DCX), while also suggesting that UK5099 has more context-dependent transcript-level effects, particularly when applied after TMZRT.
+
+### Associated questions
+
+1.  [Why is the dataset of interest to you?](#interest-dataset)
+This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
+
+2.  [What are the control and test conditions of the dataset?](#conditions)
+The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
+
+3.  [How many samples in each of the conditions of your dataset?](#samples)
+Next, I also wanted to investigate the samples. Each treatment condition has 3 duplicates, over 4 different treatment conditions.
+
+4.  [Were there expression values that were not unique for specific genes? How did you handle these?](#not-unique-expression)
+There are also some genes that appear to be formatted incorrectly - their HGNC ID has only numerical characters, and their formatting appears to be wrong on the table. I will remove these rows and genes from the table.
+
+5.  [Were there expression values that could not be mapped to current HUGO symbols?](#mapping)
+The initial dataset from GEO uses the HGNC symbols for its gene IDs, so all genes have a corresponding HUGO symbol.
+
+6.  [Were there any outliers in your dataset? How were they handled in the originating paper? How many outliers were removed?](#outliers)
+I then looked at the library size of each sample to ensure that there are no samples that have a relatively low read count. The library size table shows that it ranges from `r min(lib_sizes)` to `r max(lib_sizes)`, but all samples have normal read counts when compared to each other. Therefore, we will not remove any samples. The paper also did not mention any sample outliers.
+
+7.  [How did you handle replicates?](#replicates)
+I will handle replicates by keeping all samples as separate observations rather than averaging counts within each treatment group. This will improve statistical power and provides more reliable differential expression testing.
+
+8.  [What is the final coverage of your dataset?](#final-coverage)
+In this step, we will also filter out lowly expressed genes using `edgeR`'s `filterByExpr()` function. This will remove genes that have relatively low read counts, as was mentioned during the cleaning steps above. This resulted in 15,630 genes being kept across 12 samples, filtering out 28,154 lowly expressed genes.
+
+
+## References
+
+---
+nocite: '@*'
+---
