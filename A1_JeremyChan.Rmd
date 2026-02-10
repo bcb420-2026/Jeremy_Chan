@@ -8,7 +8,7 @@ output:
     toc_float: true
     code_folding: hide
 date: "`r Sys.Date()`"
-bibliography: references.bib 
+bibliography: a1_references.bib 
 link-citations: true
 ---
 
