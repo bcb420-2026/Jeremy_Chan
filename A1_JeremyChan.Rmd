@@ -20,7 +20,7 @@ In this assignment, we will be analysing the bulk RNA-seq data from GEO accessio
 The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
 
 ### {#interest-dataset}
-This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
+I found and chose this dataset by searching through the GEO database website. This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
 
 ## Installing relevant packages
 
