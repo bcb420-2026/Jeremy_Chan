@@ -58,16 +58,16 @@ if(!requireNamespace("ggrepel", quietly = TRUE)) {
   install.packages("ggrepel")
 }
 
-if(!requireNamespace("circlize", quietly = TRUE)) {
-  install.packages("circlize")
-}
-
 if(!requireNamespace("tibble", quietly = TRUE)) {
   install.packages("tibble")
 }
 
 if(!requireNamespace("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
+}
+
+if(!requireNamespace("circlize", quietly = TRUE)) {
+  BiocManager::install("circlize")
 }
 
 if(!requireNamespace("ComplexHeatmap", quietly = TRUE)) {
@@ -252,10 +252,6 @@ paged_table(samples)
 
 **Table 4: Sample by its treatment group and replicate number.** Table shows the full sample name (column 1), as well the extracted treatment names/groups that it is part of (column 2), and the replicate number in its respective group (column 3).
 
-### Apply TMM normalisation 
-
-We normalized the bulk RNA-seq counts using the TMM (Trimmed Mean of M-values) method in `edgeR`. TMM corrects for differences in sequencing depth and compositional bias by trimming genes with extreme fold-changes and extreme expression before estimating scaling factors. This is preferred over methods such as RPKM/FPKM for differential expression because those approaches do not robustly correct for composition bias, potentially creating inaccurate results during the future steps.
-
 ### Filtering lowly expressed genes {#final-coverage}
 
 In this step, we will also filter out lowly expressed genes using `edgeR`'s `filterByExpr()` function. This will remove genes that have relatively low read counts, as was mentioned during the cleaning steps above. This resulted in 15,630 genes being kept across 12 samples, filtering out 28,154 lowly expressed genes.
@@ -277,6 +273,13 @@ d <- DGEList(counts = as.matrix(cleaned_data_matrix),
 
 # Filter out lowly expressed genes
 keep <- filterByExpr(d, group = samples$treatment)
+```
+
+### Apply TMM normalisation 
+
+I then normalized the bulk RNA-seq counts using the TMM (Trimmed Mean of M-values) method in `edgeR`. TMM corrects for differences in sequencing depth and compositional bias by trimming genes with extreme fold-changes and extreme expression before estimating scaling factors. This is preferred over methods such as RPKM/FPKM for differential expression because those approaches do not robustly correct for composition bias, potentially creating inaccurate results during the future steps.
+
+```{r, message = FALSE, warning = FALSE}
 d <- d[keep, , keep.lib.sizes = FALSE]
 
 # Calculate scaling factors for normalisation through TMM
