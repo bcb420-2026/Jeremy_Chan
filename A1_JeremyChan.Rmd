@@ -3,6 +3,8 @@ title: "Assignment 1"
 author: "Jeremy Chan"
 output: 
   html_document:
+    theme: journal
+    number_sections: true
     toc: true
     toc_depth: 3
     toc_float: true
@@ -12,14 +14,11 @@ bibliography: a1_references.bib
 link-citations: true
 ---
 
-## Introduction to the study
+## Introduction {#introduction}
 
-In this assignment, we will be analysing the bulk RNA-seq data from GEO accession [`GSE253464`](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi), published as part of a study by Martell et al. (2025). The study shows that after temozolomide treatment plus radiation (TMZ‑RT), surviving glioblastoma (GBM) cells up‑regulate key genes MPC1/MPC2, which leads to a consequent up-reguation of PC, and down-regulation of PDH activity. This reduces acetyl-CoA production, down-regulating neural differentiation genes NEUROD1 and DCX, leading to undifferentiated and aggressive GBM cells. However, MPC inhibition through metabolic interventions like UK-5099, in a post‑TMZ‑RT state reverses these changes, restoring NEUROD1/DCX expression to limit recurrence.
+In this assignment, we will be analysing the bulk RNA-seq data from GEO accession [`GSE253464`](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi), published as part of a study by Martell et al. (2025). The study shows that after temozolomide treatment plus radiation (TMZ‑RT), surviving glioblastoma (GBM) cells up‑regulate key genes MPC1/MPC2, which leads to a consequent up-reguation of PC, and down-regulation of PDH activity. This reduces acetyl-CoA production, down-regulating neural differentiation genes NEUROD1 and DCX, leading to undifferentiated and aggressive GBM cells. However, MPC inhibition through metabolic interventions like UK-5099, in a post‑TMZ‑RT state reverses these changes, restoring NEUROD1/DCX expression to limit recurrence. The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
 
-### {#conditions}
-The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
-
-### {#interest-dataset}
+### Dataset justification {#interest-dataset}
 I found and chose this dataset by searching through the GEO database website. This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
 
 ## Installing relevant packages
@@ -92,7 +91,7 @@ if(!requireNamespace("edgeR", quietly = TRUE)) {
 
 In this section, I will first pull the data from the GEO database. I will then clean the data by dealing with duplicate and incorrectly formatted genes, then demonstrate identifier mapping.
 
-### Pulling data in from GEO
+### Downloading data from GEO
 
 To begin, I will use the `GEOquery` package to obtain the raw count data from the GSE database.
 
@@ -117,7 +116,7 @@ paged_table(raw_counts[1:10, 1:10])
 
 **Table 1: Unnormalised read counts of GSE253646.** Table showing the unnormalised read counts of each samples (columns 7 to 18) for each gene (row). Columns 2 to 6 of the table has additional information about each gene including their chromosomal position, strand orientation, and gene length. Displayed table is truncated to 10 rows and 10 columns for visibility.
 
-### Quality control and cleaning of data
+### Quality control and cleaning of data {#qc}
 
 Next, I will summarise the overall statistics of the data as well as look over it to make sure that we move on with the correct gene dataset for the upcoming steps.
 
@@ -139,11 +138,9 @@ paged_table(lib_sizes)
 
 **Table 2: Library size of each sample.** Table showing the library size for each sample, where the first column is the sample name and the second column is the sum of read counts across all genes that were sequenced for that sample.
 
-### {#outliers}
-### {#samples}
 From this quick statistical summary, we see that there are `r num_genes` rows, each indicating a gene. However, I noticed that there were some duplicates. After cleaning their gene IDs, I found that there are `r num_unique_genes` unique genes instead, meaning that there are 34 rows that have duplicates. Next, I also wanted to investigate the samples. Each treatment condition has 3 duplicates, over 4 different treatment conditions. I then looked at the library size of each sample to ensure that there are no samples that have a relatively low read count. The library size table shows that it ranges from `r min(lib_sizes)` to `r max(lib_sizes)`, but all samples have normal read counts when compared to each other. Therefore, we will not remove any samples. The paper also did not mention any sample outliers.
 
-### {#replicates}
+### Handling sample replicates {#replicates}
 I will handle replicates by keeping all samples as separate observations rather than averaging counts within each treatment group. This will improve statistical power and provides more reliable differential expression testing.
 
 Now that I know that there are some genes that correspond to multiple rows on the dataset, I opted to sum their read counts and then remove the duplicate rows.
@@ -171,7 +168,7 @@ counts <- counts_summed
 
 This leaves us with 43797 genes, removing `r nrow(raw_counts) - nrow(counts_summed)` duplicate rows.
 
-### {#not-unique-expression}
+### Handling replicate genes {#not-unique-expression}
 There are also some genes that appear to be formatted incorrectly - their HGNC ID has only numerical characters, and their formatting appears to be wrong on the table. I will remove these rows and genes from the table.
 
 ```{r, message = FALSE, warning = FALSE}
@@ -185,8 +182,7 @@ counts <- counts %>%
 
 This leaves us with `r nrow(counts)` genes remaining in the dataset. There are some genes that appear to be zero in all samples, but we will not remove them for now as we will be filtering out lowly expressed genes in the upcoming steps.
 
-### Mapping to HUGO symbols
-### {#mapping}
+### Mapping to HUGO symbols {#mapping}
 The initial dataset from GEO uses the HGNC symbols for its gene IDs, so all genes have a corresponding HUGO symbol. However, I will demonstrate identifier mapping by mapping the HGNC symbols to its corresponding ensembl gene ID(s), if they exist.
 
 ```{r, message = FALSE, warning = FALSE}
@@ -256,11 +252,12 @@ paged_table(samples)
 
 **Table 4: Sample by its treatment group and replicate number.** Table shows the full sample name (column 1), as well the extracted treatment names/groups that it is part of (column 2), and the replicate number in its respective group (column 3).
 
-### Apply TMM normalisation
+### Apply TMM normalisation 
 
 We normalized the bulk RNA-seq counts using the TMM (Trimmed Mean of M-values) method in `edgeR`. TMM corrects for differences in sequencing depth and compositional bias by trimming genes with extreme fold-changes and extreme expression before estimating scaling factors. This is preferred over methods such as RPKM/FPKM for differential expression because those approaches do not robustly correct for composition bias, potentially creating inaccurate results during the future steps.
 
-### {#final-coverage}
+### Filtering lowly expressed genes {#final-coverage}
+
 In this step, we will also filter out lowly expressed genes using `edgeR`'s `filterByExpr()` function. This will remove genes that have relatively low read counts, as was mentioned during the cleaning steps above. This resulted in 15,630 genes being kept across 12 samples, filtering out 28,154 lowly expressed genes.
 
 ```{r, message = FALSE, warning = FALSE}
@@ -700,10 +697,10 @@ In this report, I performed a bulk RNA-seq differential expression analysis usin
 1.  [Why is the dataset of interest to you?](#interest-dataset)
 This study and dataset is of interest to me because my current research project with Dr. Federico Gaiti also focuses on glioblastoma and the recurrent property of the cancer, as our attempts are in resolving primary from recurrent tumour cell families in phylogenies.
 
-2.  [What are the control and test conditions of the dataset?](#conditions)
+2.  [What are the control and test conditions of the dataset?](#introduction)
 The main treatment conditions tested were therapy-naive GBM cells versus GBM cells exposed to a concurrent TMZ-RT regimen. They also tested metabolic interventions by inhibiting MPC with UK-5099, both alone and adjuvant after TMZ-RT.
 
-3.  [How many samples in each of the conditions of your dataset?](#samples)
+3.  [How many samples in each of the conditions of your dataset?](#qc)
 Next, I also wanted to investigate the samples. Each treatment condition has 3 duplicates, over 4 different treatment conditions.
 
 4.  [Were there expression values that were not unique for specific genes? How did you handle these?](#not-unique-expression)
@@ -712,7 +709,7 @@ There are also some genes that appear to be formatted incorrectly - their HGNC I
 5.  [Were there expression values that could not be mapped to current HUGO symbols?](#mapping)
 The initial dataset from GEO uses the HGNC symbols for its gene IDs, so all genes have a corresponding HUGO symbol.
 
-6.  [Were there any outliers in your dataset? How were they handled in the originating paper? How many outliers were removed?](#outliers)
+6.  [Were there any outliers in your dataset? How were they handled in the originating paper? How many outliers were removed?](#qc)
 I then looked at the library size of each sample to ensure that there are no samples that have a relatively low read count. The library size table shows that it ranges from `r min(lib_sizes)` to `r max(lib_sizes)`, but all samples have normal read counts when compared to each other. Therefore, we will not remove any samples. The paper also did not mention any sample outliers.
 
 7.  [How did you handle replicates?](#replicates)
