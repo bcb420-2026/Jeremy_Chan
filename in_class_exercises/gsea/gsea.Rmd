@@ -1,0 +1,88 @@
+---
+title: "gsea"
+output: html_document
+params:
+  analysis_name: GSEA_test
+  working_dir: ~/projects/Jeremy_Chan/in_class_exercises/gsea/data/
+  output_dir: ~/projects/Jeremy_Chan/in_class_exercises/gsea/output/
+  rnk_file: MesenvsImmuno_RNASeq_ranks.rnk
+  classes_file: classes.cls
+  expression_file: expression.txt
+  run_gsea: yes
+  gsea_jar: ~/projects/Jeremy_Chan/GSEA_4.4.0/gsea-cli.sh
+  gsea_directory: ''
+  fdr_thresh: 0.01
+  pval_thresh: 1
+  java_version: 11
+  
+---
+
+I installed the GSEA software from their website (command-line version) and
+unzipped it into my directory. I put the path in the parameters of the
+Rmd file (see above) - the parameters section was modified from the enrichment
+map analysis Rmd.
+
+Set parameters first:
+```{r}
+gsea_jar <- params$gsea_jar
+working_dir <- params$working_dir
+output_dir <- params$output_dir
+analysis_name <- params$analysis_name
+rnk_file <- params$rnk_file
+run_gsea <- params$run_gsea
+dest_gmt_file = ""
+```
+
+Get the .gmt file:
+- Had to change http to https (contents showed that the web address was moved)
+- Homework assignment states to use the September 1, 2025 dataset so I changed current_release to September_01_2025
+- We want gene sets with GO biological process, no IEA and pathways
+- I think it's 'Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt'
+- There's also with PFOCR (pathway figure OCR) but I will use the one without for this test
+```{r}
+if(dest_gmt_file == "") {
+  gmt_url = "https://download.baderlab.org/EM_Genesets/September_01_2025/Human/symbol/"
+  
+  filenames = getURL(gmt_url)
+  tc = textConnection(filenames)
+  contents = readLines(tc)
+  close(tc)
+  
+  rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_noPFOCR_no_GO_iea.*.)(.gmt)(?=\">)",
+    contents, perl = TRUE)
+  gmt_file = unlist(regmatches(contents, rx))
+  dest_gmt_file <- file.path(output_dir, gmt_file)
+  
+  if(!file.exists(dest_gmt_file)){
+    download.file(
+      paste(gmt_url,gmt_file, sep=""),
+      destfile = dest_gmt_file
+    )
+  }
+}
+
+```
+Successfully downloaded the .gmt file into the output directory.
+
+Now, we want to run GSEA on these parameters:
+- maximum geneset size of 200
+- minimum geneset size of 15
+- gene set permutation
+
+Had to change permission for the jar file (gsea-cli.sh) for it to run properly ('chmod +x GSEA_4.4.0/gsea-cli.sh').
+```{r}
+if(run_gsea) {
+  command <- paste("", gsea_jar,
+                   "GSEAPreRanked -gmx", dest_gmt_file,
+                   "-rnk", file.path(working_dir, rnk_file),
+                   "-collapse false -nperm 1000 -scoring_scheme weighted",
+                   "-rpt_label ", analysis_name,
+                   "-plot_top_x 20 -rnd_seed 12345 -set_max 200",
+                   "-set_min 15 -zip_report false",
+                   "-out ", output_dir,
+                   " > gsea_output.txt", sep = " ")
+  system(command)
+}
+```
+
+We can see an overview of the information in the created 'index.html' file!
