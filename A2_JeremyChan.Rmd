@@ -47,7 +47,7 @@ if(!requireNamespace("gprofiler2", quietly = TRUE)) {
 
 # Set working directory - ensure data and figures are loaded in properly
 library("knitr")
-opts_knit$set(root.dir = "~/projects/Jeremy_Chan/A2")
+opts_knit$set(root.dir = "/home/rstudio/projects/A2")
 ```
 
 ## Thresholded over-representation analysis
