@@ -1673,7 +1673,7 @@ if(!requireNamespace(&quot;gprofiler2&quot;, quietly = TRUE)) {
 library(&quot;knitr&quot;)
 opts_knit$set(root.dir = &quot;~/projects/Jeremy_Chan/A2&quot;)</code></pre>
 </div>
-<div id="method" class="section level2" number="3">
+<div id="thresholded-over-representation-analysis" class="section level2" number="3">
 <h2><span class="header-section-number">3</span> Thresholded
 over-representation analysis</h2>
 <p>We will run a thresholded over-representation analysis (ORA) using
@@ -1711,7 +1711,7 @@ combo_naive_down &lt;- combo_naive_sig_genes %&gt;%
 <p>Now, we have lists for significantly up- and down-regulated genes, as
 well as the combined list for this contrast.</p>
 </div>
-<div id="annotation-threshold-comparison" class="section level3" number="3.2">
+<div id="gprofiler-querying" class="section level3" number="3.2">
 <h3><span class="header-section-number">3.2</span> g:Profiler
 querying</h3>
 <p>Prior to conducting the ORA, we will first query the gene sets from
@@ -1787,11 +1787,17 @@ one another.</p>
 
 kable(
   filtered_combo_naive[1:10, ],
-  caption = &quot;Table 1. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using all significantly differentially expressed genes for the TMZRT + UK5099 vs Naive comparison.&quot;)</code></pre>
+  caption = &quot;Table 1. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using all significantly differentially expressed genes for the TMZRT + UK5099 vs Naive comparison sorted by descending p-value. p_value indicates the statistical significance of pathway enrichment. term_size is the number of genes associated with the pathway in the annotation database. term_name describes the biological process represented by the gene set. source indicates the annotation database from which the term originates (GO:BP = Gene Ontology Biological Process, REAC = REACTOME).&quot;)</code></pre>
 <table>
 <caption>Table 1. Top 10 enriched pathways from g:Profiler thresholded
 over-representation analysis using all significantly differentially
-expressed genes for the TMZRT + UK5099 vs Naive comparison.</caption>
+expressed genes for the TMZRT + UK5099 vs Naive comparison sorted by
+descending p-value. p_value indicates the statistical significance of
+pathway enrichment. term_size is the number of genes associated with the
+pathway in the annotation database. term_name describes the biological
+process represented by the gene set. source indicates the annotation
+database from which the term originates (<a href="GO:BP" class="uri">GO:BP</a> = Gene Ontology Biological Process, REAC =
+REACTOME).</caption>
 <colgroup>
 <col width="8%" />
 <col width="10%" />
@@ -1874,11 +1880,17 @@ expression</td>
 </table>
 <pre class="r"><code>kable(
   filtered_combo_naive_up[1:10, ],
-  caption = &quot;Table 2. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using significantly up-regulated genes for the TMZRT + UK5099 vs Naive comparison.&quot;)</code></pre>
+  caption = &quot;Table 2. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using significantly up-regulated genes for the TMZRT + UK5099 vs Naive comparison sorted by descending p-value. p_value indicates the statistical significance of pathway enrichment. term_size is the number of genes associated with the pathway in the annotation database. term_name describes the biological process represented by the gene set. source indicates the annotation database from which the term originates (GO:BP = Gene Ontology Biological Process, REAC = REACTOME).&quot;)</code></pre>
 <table>
 <caption>Table 2. Top 10 enriched pathways from g:Profiler thresholded
 over-representation analysis using significantly up-regulated genes for
-the TMZRT + UK5099 vs Naive comparison.</caption>
+the TMZRT + UK5099 vs Naive comparison sorted by descending p-value.
+p_value indicates the statistical significance of pathway enrichment.
+term_size is the number of genes associated with the pathway in the
+annotation database. term_name describes the biological process
+represented by the gene set. source indicates the annotation database
+from which the term originates (<a href="GO:BP" class="uri">GO:BP</a> =
+Gene Ontology Biological Process, REAC = REACTOME).</caption>
 <colgroup>
 <col width="10%" />
 <col width="13%" />
@@ -1958,11 +1970,17 @@ the TMZRT + UK5099 vs Naive comparison.</caption>
 </table>
 <pre class="r"><code>kable(
   filtered_combo_naive_down[1:10, ],
-  caption = &quot;Table 3. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using significantly down-regulated genes for the TMZRT + UK5099 vs Naive comparison.&quot;)</code></pre>
+  caption = &quot;Table 3. Top 10 enriched pathways from g:Profiler thresholded over-representation analysis using significantly down-regulated genes for the TMZRT + UK5099 vs Naive comparison sorted by descending p-value. p_value indicates the statistical significance of pathway enrichment. term_size is the number of genes associated with the pathway in the annotation database. term_name describes the biological process represented by the gene set. source indicates the annotation database from which the term originates (GO:BP = Gene Ontology Biological Process, REAC = REACTOME).&quot;)</code></pre>
 <table>
 <caption>Table 3. Top 10 enriched pathways from g:Profiler thresholded
 over-representation analysis using significantly down-regulated genes
-for the TMZRT + UK5099 vs Naive comparison.</caption>
+for the TMZRT + UK5099 vs Naive comparison sorted by descending p-value.
+p_value indicates the statistical significance of pathway enrichment.
+term_size is the number of genes associated with the pathway in the
+annotation database. term_name describes the biological process
+represented by the gene set. source indicates the annotation database
+from which the term originates (<a href="GO:BP" class="uri">GO:BP</a> =
+Gene Ontology Biological Process, REAC = REACTOME).</caption>
 <colgroup>
 <col width="10%" />
 <col width="10%" />
@@ -2102,13 +2120,13 @@ mechanisms concerning recurrence.</p>
 <div id="non-thresholded-gene-set-enrichment-analysis" class="section level2" number="4">
 <h2><span class="header-section-number">4</span> Non-thresholded Gene
 set Enrichment Analysis</h2>
-<p>We will now run a non-thresholded gene set enrichment analysis (GSEA)
-using their command-line software. I chose this method because it is a
-widely used and well-established method for gene set enrichment analysis
-that does not require an arbitrary threshold for significance.
-Additionally, I have some familiarity with the GSEA software from the
-in-class exercises, which will allow me to run the analysis more
-efficiently.</p>
+<p>We will now run a non-thresholded gene set enrichment analysis (GSEA
+- pre-ranked) using their command-line software. I chose this method
+because it is a widely used and well-established method for gene set
+enrichment analysis that does not require an arbitrary threshold for
+significance. Additionally, I have some familiarity with the GSEA
+software from the in-class exercises, which will allow me to run the
+analysis more efficiently.</p>
 <div id="analysis-setup" class="section level3" number="4.1">
 <h3><span class="header-section-number">4.1</span> Analysis setup</h3>
 <p>First, we will prepare the variables that GSEA requires, such as
@@ -2153,7 +2171,7 @@ if (dest_gmt_file == &quot;&quot;) {
 
   # Extract GMT filename
   rx &lt;- gregexpr(
-    &quot;(?&lt;=&lt;a href=\&quot;)(.*GOBP_AllPathways_noPFOCR_no_GO_iea.*\\.gmt)(?=\&quot;&gt;)&quot;,
+    &quot;(?&lt;=&lt;a href=\&quot;)(.*GOBP_AllPathways_noPFOCR_no_GO_iea.*\\.gmt)(?=\&quot;&gt;)&quot;, 
     page_lines,
     perl = TRUE
   )
@@ -2174,15 +2192,15 @@ if (dest_gmt_file == &quot;&quot;) {
 <h3><span class="header-section-number">4.2</span> GSEA analysis</h3>
 <p>Now that we have the parameters set up, we can run the GSEA analysis
 using the command line software. We will specify the input files, output
-directory, and parameters such as the minimum and maximum gene set size
-matching the non-thresholded ORA in the previous section, as well as the
-number of permutations to run.</p>
+directory, and parameters such as the minimum (5) and maximum (200) gene
+set size matching the non-thresholded ORA in the previous section, as
+well as the number of permutations to run.</p>
 <pre class="r"><code># Run GSEA
 if(run_gsea) {
   command &lt;- paste(&quot;&quot;, gsea_jar,
                    &quot;GSEAPreRanked -gmx&quot;, dest_gmt_file,
                    &quot;-rnk&quot;, file.path(working_dir, rnk_file),
-                   &quot;-collapse false -nperm 1000 -scoring_scheme weighted&quot;,
+                   &quot;-collapse false -nperm 1000 -scoring_scheme weighted&quot;, # ranked
                    &quot;-rpt_label &quot;, analysis_name,
                    &quot;-plot_top_x 20 -rnd_seed 99 -set_max 200&quot;,
                    &quot;-set_min 5 -zip_report false&quot;,
@@ -2204,11 +2222,17 @@ naive_up &lt;- read_tsv(&quot;results/gsea_report_for_na_neg_1772951764529.tsv&q
   mutate(NAME = sub(&quot;%.*&quot;, &quot;&quot;, NAME)) %&gt;%  # Clean NAME column for easier viewing
   as.data.frame()
 
-kable(combo_up[1:10, ], caption = &quot;Table 4. Top 10 enriched pathways in treated samples from GSEA non-thresholded over-representation analysis using all genes for the TMZRT + UK5099 vs Naive comparison.&quot;)</code></pre>
+kable(combo_up[1:10, ], caption = &quot;Table 4. Top 10 enriched pathways sorted by descending NES in treated samples from GSEA non-thresholded over-representation analysis using all genes for the TMZRT + UK5099 vs Naive comparison. NAME indicates the pathway or gene set. SIZE is the number of genes from the pathway present in the dataset. NES (Normalized Enrichment Score) reflects the strength of pathway enrichment after adjusting for gene set size. NOM p-val is the nominal permutation p-value for the enrichment score. FDR q-val is the multiple testing corrected false discovery rate.&quot;)</code></pre>
 <table>
-<caption>Table 4. Top 10 enriched pathways in treated samples from GSEA
-non-thresholded over-representation analysis using all genes for the
-TMZRT + UK5099 vs Naive comparison.</caption>
+<caption>Table 4. Top 10 enriched pathways sorted by descending NES in
+treated samples from GSEA non-thresholded over-representation analysis
+using all genes for the TMZRT + UK5099 vs Naive comparison. NAME
+indicates the pathway or gene set. SIZE is the number of genes from the
+pathway present in the dataset. NES (Normalized Enrichment Score)
+reflects the strength of pathway enrichment after adjusting for gene set
+size. NOM p-val is the nominal permutation p-value for the enrichment
+score. FDR q-val is the multiple testing corrected false discovery
+rate.</caption>
 <colgroup>
 <col width="55%" />
 <col width="6%" />
@@ -2298,11 +2322,17 @@ TMZRT + UK5099 vs Naive comparison.</caption>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>kable(naive_up[1:10, ], caption = &quot;Table 5. Top 10 enriched pathways in naive samples from GSEA non-thresholded over-representation analysis using all genes for the TMZRT + UK5099 vs Naive comparison.&quot;)</code></pre>
+<pre class="r"><code>kable(naive_up[1:10, ], caption = &quot;Table 5. Top 10 enriched pathways sorted by descending NES in naive samples from GSEA non-thresholded over-representation analysis using all genes for the TMZRT + UK5099 vs Naive comparison. NAME indicates the pathway or gene set. SIZE is the number of genes from the pathway present in the dataset. NES (Normalized Enrichment Score) reflects the strength of pathway enrichment after adjusting for gene set size. NOM p-val is the nominal permutation p-value for the enrichment score. FDR q-val is the multiple testing corrected false discovery rate.&quot;)</code></pre>
 <table style="width:100%;">
-<caption>Table 5. Top 10 enriched pathways in naive samples from GSEA
-non-thresholded over-representation analysis using all genes for the
-TMZRT + UK5099 vs Naive comparison.</caption>
+<caption>Table 5. Top 10 enriched pathways sorted by descending NES in
+naive samples from GSEA non-thresholded over-representation analysis
+using all genes for the TMZRT + UK5099 vs Naive comparison. NAME
+indicates the pathway or gene set. SIZE is the number of genes from the
+pathway present in the dataset. NES (Normalized Enrichment Score)
+reflects the strength of pathway enrichment after adjusting for gene set
+size. NOM p-val is the nominal permutation p-value for the enrichment
+score. FDR q-val is the multiple testing corrected false discovery
+rate.</caption>
 <colgroup>
 <col width="63%" />
 <col width="5%" />
