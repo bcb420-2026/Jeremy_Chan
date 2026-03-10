@@ -1,0 +1,23 @@
+producer_class	xtools.gsea.GseaPreranked
+producer_timestamp	1772951764529
+param	rpt_label	GSEA_Combo_vs_Naive
+param	rnd_seed	99
+param	set_min	5
+param	zip_report	false
+param	create_svgs	false
+param	scoring_scheme	weighted
+param	rnk	/home/rstudio/projects/Jeremy_Chan/A2/Combo_vs_Naive_Ranked_Genes.rnk
+param	norm	meandiv
+param	out	/home/rstudio/projects/Jeremy_Chan/A2
+param	mode	Max_probe
+param	include_only_symbols	true
+param	help	false
+param	set_max	200
+param	gmx	/home/rstudio/projects/Jeremy_Chan/A2/Human_GOBP_AllPathways_noPFOCR_no_GO_iea_September_01_2025_symbol.gmt
+param	make_sets	true
+param	plot_top_x	20
+param	gui	false
+param	nperm	1000
+param	collapse	No_Collapse
+
+file	/home/rstudio/projects/Jeremy_Chan/A2/GSEA_Combo_vs_Naive.GseaPreranked.1772951764529/index.html
